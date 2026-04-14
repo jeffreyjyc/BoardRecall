@@ -33,3 +33,10 @@ export interface GenerationState {
   isGenerating: boolean;
   error: string | null;
 }
+
+export interface AppSettings {
+  provider: 'gemini' | 'local';
+  geminiApiKey: string;
+  localEndpoint: string;
+  localModel: string;
+}

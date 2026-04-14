@@ -4,16 +4,17 @@ import { FlashcardEditor } from './components/FlashcardEditor';
 import { FlashcardViewer } from './components/FlashcardViewer';
 import { Flashcard, QuestionSet } from './types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { generateFlashcards, addMoreFlashcards, generateBoardQuestions } from './lib/gemini';
+import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2 } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
 import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
+import { SettingsModal } from './components/SettingsModal';
 
 type View = 'home' | 'input' | 'edit' | 'study';
 
@@ -25,9 +26,11 @@ export default function App() {
   const [isAddingMore, setIsAddingMore] = useState(false);
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [activeTab, setActiveTab] = useState('flashcards');
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Load history from localStorage
+  // Load history and settings
   useEffect(() => {
+    loadSettings();
     const saved = localStorage.getItem('medflash_history');
     if (saved) {
       try {
@@ -142,6 +145,15 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-slate-600 hover:text-blue-600"
+                onClick={() => setShowSettings(true)}
+              >
+                <SettingsIcon size={18} className="mr-2" />
+                Settings
+              </Button>
               {view === 'edit' && (
                 <div className="flex gap-2">
                   <Button 
@@ -371,6 +383,12 @@ export default function App() {
             onClose={() => setView('home')} 
           />
         )}
+
+        <AnimatePresence>
+          {showSettings && (
+            <SettingsModal onClose={() => setShowSettings(false)} />
+          )}
+        </AnimatePresence>
       </div>
     </TooltipProvider>
   );

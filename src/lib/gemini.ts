@@ -1,7 +1,58 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Flashcard, BoardQuestion } from "../types";
+import { Flashcard, BoardQuestion, AppSettings } from "../types";
+import { v4 as uuidv4 } from 'uuid';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Default settings
+let currentSettings: AppSettings = {
+  provider: 'gemini',
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
+  localEndpoint: "http://localhost:11434/v1", // Default Ollama OpenAI-compatible endpoint
+  localModel: "llama3",
+};
+
+// Load settings from storage
+export async function loadSettings(): Promise<AppSettings> {
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['med-flashcard-settings'], (result) => {
+        const savedSettings = result['med-flashcard-settings'];
+        if (savedSettings && typeof savedSettings === 'object') {
+          currentSettings = { ...currentSettings, ...(savedSettings as Partial<AppSettings>) };
+        }
+        resolve(currentSettings);
+      });
+    });
+  }
+  
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('med-flashcard-settings');
+    if (saved) {
+      try {
+        currentSettings = { ...currentSettings, ...JSON.parse(saved) };
+      } catch (e) {
+        console.error("Failed to parse settings", e);
+      }
+    }
+  }
+  return currentSettings;
+}
+
+// Initial load
+loadSettings();
+
+export function updateSettings(settings: Partial<AppSettings>) {
+  currentSettings = { ...currentSettings, ...settings };
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    chrome.storage.local.set({ 'med-flashcard-settings': currentSettings });
+  }
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('med-flashcard-settings', JSON.stringify(currentSettings));
+  }
+}
+
+export function getSettings() {
+  return currentSettings;
+}
 
 const FLASHCARD_SCHEMA = {
   type: Type.ARRAY,
@@ -25,103 +76,6 @@ const FLASHCARD_SCHEMA = {
     required: ["front", "back", "tags"],
   },
 };
-
-import { v4 as uuidv4 } from 'uuid';
-
-export async function generateFlashcards(
-  content: string,
-  images: string[] = [],
-  customInstructions: string = ""
-): Promise<Flashcard[]> {
-  const model = "gemini-3.1-pro-preview";
-  
-  const systemInstruction = `
-    You are an expert medical educator specializing in USMLE Step 1 and Step 2 board exams.
-    Your task is to convert medical board exam questions and their explanations into high-yield, effective flashcards.
-    
-    GUIDELINES:
-    1. Use Anki-style Cloze deletion: {{c1::answer}}. 
-    2. If a hint is helpful for a specific blank, include it after a second double-colon: {{c1::answer::hint}}.
-    3. Use c2, c3, etc. only if a second or third deletion is REALLY necessary to understand the relationship in the same sentence. Otherwise, prefer separate cards.
-    4. Keep one atomic fact per cloze.
-    5. The back of the card should provide concise context, the "why" behind the fact, and any relevant high-yield associations.
-    6. Only generate cards for the most high-yield, board-relevant information.
-    7. Succinctly summarize information. Don't over-generate.
-    8. IMPORTANT: Ignore any reference information, ancillary data, copyright notices, or metadata that was copied into the input box that is not directly related to the medical question or its explanation. Focus exclusively on the medical content.
-    
-    ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ""}
-  `;
-
-  const parts: any[] = [{ text: `Generate flashcards from the following medical question and explanation:\n\n${content}` }];
-  
-  for (const img of images) {
-    const [mime, data] = img.split(";base64,");
-    parts.push({
-      inlineData: {
-        mimeType: mime.split(":")[1],
-        data: data,
-      },
-    });
-  }
-
-  try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: { parts },
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: FLASHCARD_SCHEMA,
-      },
-    });
-
-    const result = JSON.parse(response.text || "[]");
-    return result.map((card: any) => ({
-      ...card,
-      id: uuidv4(),
-    }));
-  } catch (error) {
-    console.error("Error generating flashcards:", error);
-    throw new Error("Failed to generate flashcards. Please check your input and try again.");
-  }
-}
-
-export async function addMoreFlashcards(
-  existingCards: Flashcard[],
-  originalContent: string
-): Promise<Flashcard[]> {
-  const model = "gemini-3.1-pro-preview";
-  
-  const systemInstruction = `
-    You are an expert medical educator. 
-    The user has already generated some flashcards from a medical question.
-    Your task is to identify additional high-yield facts from the original question/explanation that haven't been covered yet and create new cloze-style flashcards for them.
-    
-    EXISTING CARDS:
-    ${JSON.stringify(existingCards.map(c => c.front))}
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: `Original Question/Explanation:\n${originalContent}\n\nGenerate 2-3 additional unique high-yield flashcards.`,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: FLASHCARD_SCHEMA,
-      },
-    });
-
-    const result = JSON.parse(response.text || "[]");
-    return result.map((card: any) => ({
-      ...card,
-      id: uuidv4(),
-    }));
-  } catch (error) {
-    console.error("Error adding more flashcards:", error);
-    throw new Error("Failed to generate additional cards.");
-  }
-}
 
 const BOARD_QUESTION_SCHEMA = {
   type: Type.ARRAY,
@@ -163,11 +117,172 @@ const BOARD_QUESTION_SCHEMA = {
   },
 };
 
+async function callLocalLLM(systemPrompt: string, userPrompt: string, schema: any): Promise<any> {
+  const { localEndpoint, localModel } = currentSettings;
+  
+  // Construct a prompt that asks for JSON matching the schema
+  const prompt = `${systemPrompt}\n\n${userPrompt}\n\nIMPORTANT: Respond ONLY with a JSON array that strictly follows this schema: ${JSON.stringify(schema)}`;
+
+  try {
+    const response = await fetch(`${localEndpoint}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: localModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt + "\n\nRespond in JSON format." }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local LLM error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    
+    // Try to parse the JSON. Some models might wrap it in markdown blocks.
+    const jsonStr = content.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+    
+    // Some models might return { "items": [...] } instead of just [...]
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed.items && Array.isArray(parsed.items)) return parsed.items;
+    if (Object.values(parsed).length === 1 && Array.isArray(Object.values(parsed)[0])) return Object.values(parsed)[0];
+    
+    return parsed;
+  } catch (error) {
+    console.error("Local LLM call failed:", error);
+    throw error;
+  }
+}
+
+export async function generateFlashcards(
+  content: string,
+  images: string[] = [],
+  customInstructions: string = ""
+): Promise<Flashcard[]> {
+  const systemInstruction = `
+    You are an expert medical educator specializing in USMLE Step 1 and Step 2 board exams.
+    Your task is to convert medical board exam questions and their explanations into high-yield, effective flashcards.
+    
+    GUIDELINES:
+    1. Use Anki-style Cloze deletion: {{c1::answer}}. 
+    2. If a hint is helpful for a specific blank, include it after a second double-colon: {{c1::answer::hint}}.
+    3. Use c2, c3, etc. only if a second or third deletion is REALLY necessary to understand the relationship in the same sentence. Otherwise, prefer separate cards.
+    4. Keep one atomic fact per cloze.
+    5. The back of the card should provide concise context, the "why" behind the fact, and any relevant high-yield associations.
+    6. Only generate cards for the most high-yield, board-relevant information.
+    7. Succinctly summarize information. Don't over-generate.
+    8. IMPORTANT: Ignore any reference information, ancillary data, copyright notices, or metadata that was copied into the input box that is not directly related to the medical question or its explanation. Focus exclusively on the medical content.
+    
+    ${customInstructions ? `USER CUSTOM INSTRUCTIONS: ${customInstructions}` : ""}
+  `;
+
+  const userPrompt = `Generate flashcards from the following medical question and explanation:\n\n${content}`;
+
+  if (currentSettings.provider === 'local') {
+    const result = await callLocalLLM(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  }
+
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const model = "gemini-flash-latest";
+  
+  const parts: any[] = [{ text: userPrompt }];
+  
+  for (const img of images) {
+    const [mime, data] = img.split(";base64,");
+    parts.push({
+      inlineData: {
+        mimeType: mime.split(":")[1],
+        data: data,
+      },
+    });
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: { parts },
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: FLASHCARD_SCHEMA as any,
+      },
+    });
+
+    const result = JSON.parse(response.text || "[]");
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  } catch (error) {
+    console.error("Error generating flashcards:", error);
+    throw new Error("Failed to generate flashcards. Please check your API key and input.");
+  }
+}
+
+export async function addMoreFlashcards(
+  existingCards: Flashcard[],
+  originalContent: string
+): Promise<Flashcard[]> {
+  const systemInstruction = `
+    You are an expert medical educator. 
+    The user has already generated some flashcards from a medical question.
+    Your task is to identify additional high-yield facts from the original question/explanation that haven't been covered yet and create new cloze-style flashcards for them.
+    
+    EXISTING CARDS:
+    ${JSON.stringify(existingCards.map(c => c.front))}
+  `;
+
+  const userPrompt = `Original Question/Explanation:\n${originalContent}\n\nGenerate 2-3 additional unique high-yield flashcards.`;
+
+  if (currentSettings.provider === 'local') {
+    const result = await callLocalLLM(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  }
+
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const model = "gemini-flash-latest";
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: FLASHCARD_SCHEMA as any,
+      },
+    });
+
+    const result = JSON.parse(response.text || "[]");
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  } catch (error) {
+    console.error("Error adding more flashcards:", error);
+    throw new Error("Failed to generate additional cards.");
+  }
+}
+
 export async function generateBoardQuestions(
   originalContent: string
 ): Promise<BoardQuestion[]> {
-  const model = "gemini-3.1-pro-preview";
-  
   const systemInstruction = `
     You are an expert medical board exam question writer for USMLE Step 1 and Step 2.
     Your task is to generate NEW board-style questions based on the provided medical content.
@@ -186,14 +301,27 @@ export async function generateBoardQuestions(
     8. Maintain a professional, board-exam tone.
   `;
 
+  const userPrompt = `Original Content:\n${originalContent}\n\nGenerate 2 unique board-style questions with in-depth explanations.`;
+
+  if (currentSettings.provider === 'local') {
+    const result = await callLocalLLM(systemInstruction, userPrompt, BOARD_QUESTION_SCHEMA);
+    return result.map((q: any) => ({
+      ...q,
+      id: uuidv4(),
+    }));
+  }
+
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const model = "gemini-flash-latest";
+
   try {
     const response = await ai.models.generateContent({
       model,
-      contents: `Original Content:\n${originalContent}\n\nGenerate 2 unique board-style questions with in-depth explanations.`,
+      contents: userPrompt,
       config: {
         systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: BOARD_QUESTION_SCHEMA,
+        responseSchema: BOARD_QUESTION_SCHEMA as any,
       },
     });
 

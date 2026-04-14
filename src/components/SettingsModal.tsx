@@ -1,0 +1,124 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Settings, Save, Globe, Cpu, ExternalLink } from 'lucide-react';
+import { AppSettings } from '../types';
+import { updateSettings, getSettings } from '../lib/gemini';
+import { toast } from 'sonner';
+
+interface SettingsModalProps {
+  onClose: () => void;
+}
+
+export function SettingsModal({ onClose }: SettingsModalProps) {
+  const [settings, setSettings] = useState<AppSettings>(getSettings());
+
+  const handleSave = () => {
+    updateSettings(settings);
+    toast.success("Settings saved successfully!");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-slate-200">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-slate-600" />
+              <CardTitle className="text-xl">AI Settings</CardTitle>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+              &times;
+            </Button>
+          </div>
+          <CardDescription>
+            Configure how your flashcards are generated.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Tabs value={settings.provider} onValueChange={(v) => setSettings(s => ({ ...s, provider: v as any }))}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="gemini" className="flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Gemini
+              </TabsTrigger>
+              <TabsTrigger value="local" className="flex items-center gap-2">
+                <Cpu className="w-4 h-4" />
+                Local (Ollama)
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="gemini" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="api-key">Gemini API Key</Label>
+                <Input
+                  id="api-key"
+                  type="password"
+                  placeholder="Enter your API key..."
+                  value={settings.geminiApiKey}
+                  onChange={(e) => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
+                />
+                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                  Get a free key from 
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline flex items-center gap-0.5"
+                  >
+                    Google AI Studio <ExternalLink size={10} />
+                  </a>
+                </p>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  <strong>Free Tier:</strong> Gemini 1.5 Flash is free to use with generous rate limits. This is the recommended way to run locally without a paid subscription.
+                </p>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="local" className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="endpoint">Local Endpoint</Label>
+                <Input
+                  id="endpoint"
+                  placeholder="http://localhost:11434/v1"
+                  value={settings.localEndpoint}
+                  onChange={(e) => setSettings(s => ({ ...s, localEndpoint: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model">Model Name</Label>
+                <Input
+                  id="model"
+                  placeholder="llama3, mistral, etc."
+                  value={settings.localModel}
+                  onChange={(e) => setSettings(s => ({ ...s, localModel: e.target.value }))}
+                />
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  <strong>Requirement:</strong> You must have <a href="https://ollama.com" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Ollama</a> or a similar tool running locally with an OpenAI-compatible API.
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+              <Save className="w-4 h-4 mr-2" />
+              Save Settings
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
