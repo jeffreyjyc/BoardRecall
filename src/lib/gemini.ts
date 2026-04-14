@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 let currentSettings: AppSettings = {
   provider: 'gemini',
   geminiApiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: "gemini-2.0-flash",
+  openaiApiKey: "",
+  openaiModel: "gpt-4o-mini",
   localEndpoint: "http://localhost:11434/v1", // Default Ollama OpenAI-compatible endpoint
   localModel: "llama3",
 };
@@ -117,12 +120,48 @@ const BOARD_QUESTION_SCHEMA = {
   },
 };
 
+async function callOpenAI(systemPrompt: string, userPrompt: string, schema: any): Promise<any> {
+  const { openaiApiKey, openaiModel } = currentSettings;
+  
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: openaiModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.1,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(`OpenAI error: ${err.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    const parsed = JSON.parse(content);
+    
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed.items && Array.isArray(parsed.items)) return parsed.items;
+    return parsed;
+  } catch (error) {
+    console.error("OpenAI call failed:", error);
+    throw error;
+  }
+}
+
 async function callLocalLLM(systemPrompt: string, userPrompt: string, schema: any): Promise<any> {
   const { localEndpoint, localModel } = currentSettings;
   
-  // Construct a prompt that asks for JSON matching the schema
-  const prompt = `${systemPrompt}\n\n${userPrompt}\n\nIMPORTANT: Respond ONLY with a JSON array that strictly follows this schema: ${JSON.stringify(schema)}`;
-
   try {
     const response = await fetch(`${localEndpoint}/chat/completions`, {
       method: 'POST',
@@ -133,7 +172,7 @@ async function callLocalLLM(systemPrompt: string, userPrompt: string, schema: an
         model: localModel,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt + "\n\nRespond in JSON format." }
+          { role: 'user', content: userPrompt + `\n\nIMPORTANT: Respond ONLY with a JSON array that strictly follows this schema: ${JSON.stringify(schema)}` }
         ],
         response_format: { type: "json_object" },
         temperature: 0.1,
@@ -195,8 +234,16 @@ export async function generateFlashcards(
     }));
   }
 
+  if (currentSettings.provider === 'openai') {
+    const result = await callOpenAI(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  }
+
   const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
-  const model = "gemini-flash-latest";
+  const model = currentSettings.geminiModel || "gemini-2.0-flash";
   
   const parts: any[] = [{ text: userPrompt }];
   
@@ -218,6 +265,8 @@ export async function generateFlashcards(
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: FLASHCARD_SCHEMA as any,
+        temperature: 0.1,
+        topP: 0.95,
       },
     });
 
@@ -234,7 +283,8 @@ export async function generateFlashcards(
 
 export async function addMoreFlashcards(
   existingCards: Flashcard[],
-  originalContent: string
+  originalContent: string,
+  customInstructions: string = ""
 ): Promise<Flashcard[]> {
   const systemInstruction = `
     You are an expert medical educator. 
@@ -243,9 +293,11 @@ export async function addMoreFlashcards(
     
     EXISTING CARDS:
     ${JSON.stringify(existingCards.map(c => c.front))}
+
+    ${customInstructions ? `USER CUSTOM INSTRUCTIONS FOR NEW CARDS: ${customInstructions}` : ""}
   `;
 
-  const userPrompt = `Original Question/Explanation:\n${originalContent}\n\nGenerate 2-3 additional unique high-yield flashcards.`;
+  const userPrompt = `Original Question/Explanation:\n${originalContent}\n\nGenerate 2-3 additional unique high-yield flashcards.${customInstructions ? ` Follow these instructions: ${customInstructions}` : ""}`;
 
   if (currentSettings.provider === 'local') {
     const result = await callLocalLLM(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
@@ -255,8 +307,16 @@ export async function addMoreFlashcards(
     }));
   }
 
+  if (currentSettings.provider === 'openai') {
+    const result = await callOpenAI(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
+    return result.map((card: any) => ({
+      ...card,
+      id: uuidv4(),
+    }));
+  }
+
   const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
-  const model = "gemini-flash-latest";
+  const model = currentSettings.geminiModel || "gemini-2.0-flash";
 
   try {
     const response = await ai.models.generateContent({
@@ -266,6 +326,8 @@ export async function addMoreFlashcards(
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: FLASHCARD_SCHEMA as any,
+        temperature: 0.1,
+        topP: 0.95,
       },
     });
 
@@ -311,8 +373,16 @@ export async function generateBoardQuestions(
     }));
   }
 
+  if (currentSettings.provider === 'openai') {
+    const result = await callOpenAI(systemInstruction, userPrompt, BOARD_QUESTION_SCHEMA);
+    return result.map((q: any) => ({
+      ...q,
+      id: uuidv4(),
+    }));
+  }
+
   const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
-  const model = "gemini-flash-latest";
+  const model = currentSettings.geminiModel || "gemini-2.0-flash";
 
   try {
     const response = await ai.models.generateContent({
@@ -322,6 +392,8 @@ export async function generateBoardQuestions(
         systemInstruction,
         responseMimeType: "application/json",
         responseSchema: BOARD_QUESTION_SCHEMA as any,
+        temperature: 0.1,
+        topP: 0.95,
       },
     });
 

@@ -35,8 +35,11 @@ export interface GenerationState {
 }
 
 export interface AppSettings {
-  provider: 'gemini' | 'local';
+  provider: 'gemini' | 'openai' | 'local';
   geminiApiKey: string;
+  geminiModel: string;
+  openaiApiKey: string;
+  openaiModel: string;
   localEndpoint: string;
   localModel: string;
 }

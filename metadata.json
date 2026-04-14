@@ -1,6 +1,6 @@
 {
-  "name": "MedFlash AI",
-  "description": "AI-powered medical flashcard generator for board exams (USMLE Step 1 & 2). Submit questions and explanations to generate high-yield cloze-style cards.",
+  "name": "BoardRecall",
+  "description": "Smart medical flashcard and question generator for board exams (USMLE Step 1 & 2). Transform vignettes and explanations into high-yield study material.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

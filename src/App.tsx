@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
@@ -27,6 +27,14 @@ export default function App() {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [activeTab, setActiveTab] = useState('flashcards');
   const [showSettings, setShowSettings] = useState(false);
+
+  const openInNewTab = () => {
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.create({ url: 'index.html' });
+    } else {
+      window.open(window.location.href, '_blank');
+    }
+  };
 
   // Load history and settings
   useEffect(() => {
@@ -68,11 +76,11 @@ export default function App() {
     }
   };
 
-  const handleAddMore = async () => {
+  const handleAddMore = async (instructions: string = "") => {
     if (!currentSet) return;
     setIsAddingMore(true);
     try {
-      const newCards = await addMoreFlashcards(currentSet.cards, currentSet.originalText);
+      const newCards = await addMoreFlashcards(currentSet.cards, currentSet.originalText, instructions);
       const updatedSet = {
         ...currentSet,
         cards: [...currentSet.cards, ...newCards],
@@ -139,12 +147,22 @@ export default function App() {
                 <Stethoscope size={24} />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-slate-800">MedFlash AI</h1>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-none">Board Prep Assistant</p>
+                <h1 className="text-xl font-bold tracking-tight text-slate-800">BoardRecall</h1>
+                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-none">Smart Exam Companion</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-slate-600 hover:text-blue-600"
+                onClick={openInNewTab}
+                title="Open in New Tab"
+              >
+                <Maximize2 size={18} className="mr-2" />
+                Full Page
+              </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 

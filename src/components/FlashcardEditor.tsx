@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 interface FlashcardEditorProps {
   cards: Flashcard[];
   onUpdate: (cards: Flashcard[]) => void;
-  onAddMore: () => void;
+  onAddMore: (instructions: string) => void;
   isAddingMore: boolean;
 }
 
@@ -22,6 +22,8 @@ import { v4 as uuidv4 } from 'uuid';
 export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: FlashcardEditorProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Flashcard | null>(null);
+  const [addMoreInstructions, setAddMoreInstructions] = useState('');
+  const [showAddMoreOptions, setShowAddMoreOptions] = useState(false);
 
   const startEditing = (card: Flashcard) => {
     setEditingId(card.id);
@@ -88,7 +90,25 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
           <h2 className="text-xl font-bold text-slate-800">Review Flashcards</h2>
           <p className="text-sm text-slate-500">{cards.length} cards generated</p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end items-center">
+          <AnimatePresence>
+            {showAddMoreOptions && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 'auto', opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                className="overflow-hidden flex items-center"
+              >
+                <Input
+                  placeholder="Instructions for new cards..."
+                  value={addMoreInstructions}
+                  onChange={(e) => setAddMoreInstructions(e.target.value)}
+                  className="h-8 text-xs w-48 mr-2 focus-visible:ring-blue-500"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
           <Button
             variant="outline"
             size="sm"
@@ -98,16 +118,28 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
             <Download className="mr-2 h-4 w-4" />
             Export to Anki
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onAddMore}
-            disabled={isAddingMore}
-            className="text-blue-600 border-blue-200 hover:bg-blue-50"
-          >
-            {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            AI Add More
-          </Button>
+          
+          <div className="flex border border-blue-200 rounded-md overflow-hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onAddMore(addMoreInstructions)}
+              disabled={isAddingMore}
+              className="h-8 text-xs text-blue-600 hover:bg-blue-50 border-r border-blue-100 rounded-none"
+            >
+              {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              AI Add More
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAddMoreOptions(!showAddMoreOptions)}
+              className={`h-8 px-2 rounded-none ${showAddMoreOptions ? 'bg-blue-100 text-blue-700' : 'text-blue-400'}`}
+            >
+              <Plus size={14} className={`transition-transform ${showAddMoreOptions ? 'rotate-45' : ''}`} />
+            </Button>
+          </div>
+
           <Button
             variant="outline"
             size="sm"

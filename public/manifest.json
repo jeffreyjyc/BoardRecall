@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Medical Board Flashcard & Question Generator",
+  "name": "BoardRecall",
   "version": "1.0.0",
   "description": "Generate flashcards and board questions from UWorld and TrueLearn.",
-  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardRead"],
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardRead", "tabs"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "*://*.uworld.com/*",
