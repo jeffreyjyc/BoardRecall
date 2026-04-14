@@ -1,3 +1,6 @@
+> [!TIP]
+> Check to see the latest branch labelled **current** for the "stable" version.
+
 # BoardRecall - Smart Medical Exam Companion
 
 BoardRecall is a powerful tool designed for medical students to convert clinical vignettes and explanations from platforms like UWorld and TrueLearn into high-yield Anki-style flashcards and board-style practice questions.
