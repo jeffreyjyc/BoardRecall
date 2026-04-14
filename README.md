@@ -14,14 +14,19 @@ BoardRecall is a powerful tool designed for medical students to convert clinical
 
 ## 🛠️ Installation Instructions (Browser Extension)
 
-To use MedFlash AI as a sidebar or popup in your browser, follow these steps:
+### Prerequisites
+Before you begin, make sure you have **Node.js** installed on your computer. This is required to build the extension.
+1. Download and install Node.js from: [https://nodejs.org/en/download](https://nodejs.org/en/download)
+2. Follow the installer prompts (the "LTS" version is recommended).
+
+To use BoardRecall as a sidebar or popup in your browser, follow these steps:
 
 ### Step 1: Prepare the Code
 1. Download the source code to your computer.
 2. Open your terminal (Command Prompt, PowerShell, or Terminal).
 3. Navigate to the project folder:
    ```bash
-   cd path/to/medflash-ai
+   cd path/to/boardrecall
    ```
 4. Install the necessary dependencies:
    ```bash
@@ -40,12 +45,12 @@ To use MedFlash AI as a sidebar or popup in your browser, follow these steps:
 2. In the top right corner, toggle **Developer mode** to **ON**.
 3. Click the **Load unpacked** button that appears.
 4. Navigate to your project folder and select the **`dist`** folder.
-5. MedFlash AI should now appear in your extensions list!
+5. BoardRecall should now appear in your extensions list!
 
 ### Step 3: Pin and Open
 1. Click the "Puzzle" icon (Extensions) in your browser toolbar.
-2. Find **MedFlash AI** and click the "Pin" icon.
-3. Click the MedFlash AI icon to open the generator.
+2. Find **BoardRecall** and click the "Pin" icon.
+3. Click the BoardRecall icon to open the generator.
 
 ---
 
@@ -69,7 +74,7 @@ You do **not** need to modify any code files to set up your API key.
 
 ## 🖥️ Running as a Full Browser Page
 
-If you prefer to use MedFlash AI in its own tab rather than a small popup:
+If you prefer to use BoardRecall in its own tab rather than a small popup:
 
 1. Right-click the BoardRecall extension icon in your toolbar.
 2. Select **"Open in new tab"** (if available) or simply click the **"Expand to Tab"** button inside the extension header.

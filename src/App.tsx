@@ -39,7 +39,7 @@ export default function App() {
   // Load history and settings
   useEffect(() => {
     loadSettings();
-    const saved = localStorage.getItem('medflash_history');
+    const saved = localStorage.getItem('boardrecall_history');
     if (saved) {
       try {
         setHistory(JSON.parse(saved));
@@ -51,7 +51,7 @@ export default function App() {
 
   // Save history to localStorage
   useEffect(() => {
-    localStorage.setItem('medflash_history', JSON.stringify(history));
+    localStorage.setItem('boardrecall_history', JSON.stringify(history));
   }, [history]);
 
   const handleGenerate = async (text: string, images: string[], instructions: string) => {

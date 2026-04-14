@@ -74,7 +74,7 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `medflash_anki_export_${new Date().getTime()}.txt`;
+    link.download = `boardrecall_anki_export_${new Date().getTime()}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -91,60 +91,79 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
           <p className="text-sm text-slate-500">{cards.length} cards generated</p>
         </div>
         <div className="flex flex-wrap gap-2 justify-end items-center">
-          <AnimatePresence>
-            {showAddMoreOptions && (
-              <motion.div
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 'auto', opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="overflow-hidden flex items-center"
-              >
-                <Input
-                  placeholder="Instructions for new cards..."
-                  value={addMoreInstructions}
-                  onChange={(e) => setAddMoreInstructions(e.target.value)}
-                  className="h-8 text-xs w-48 mr-2 focus-visible:ring-blue-500"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
           <Button
             variant="outline"
             size="sm"
             onClick={exportToAnki}
-            className="text-green-600 border-green-200 hover:bg-green-50"
+            className="text-green-600 border-green-200 hover:bg-green-50 h-8 text-xs"
           >
             <Download className="mr-2 h-4 w-4" />
             Export to Anki
           </Button>
-          
-          <div className="flex border border-blue-200 rounded-md overflow-hidden">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onAddMore(addMoreInstructions)}
-              disabled={isAddingMore}
-              className="h-8 text-xs text-blue-600 hover:bg-blue-50 border-r border-blue-100 rounded-none"
-            >
-              {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-              AI Add More
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAddMoreOptions(!showAddMoreOptions)}
-              className={`h-8 px-2 rounded-none ${showAddMoreOptions ? 'bg-blue-100 text-blue-700' : 'text-blue-400'}`}
-            >
-              <Plus size={14} className={`transition-transform ${showAddMoreOptions ? 'rotate-45' : ''}`} />
-            </Button>
-          </div>
+
+          <AnimatePresence mode="wait">
+            {!showAddMoreOptions ? (
+              <motion.div
+                key="button"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddMoreOptions(true)}
+                  disabled={isAddingMore}
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50 h-8 text-xs"
+                >
+                  {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                  AI Add More
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="input"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="flex items-center gap-1 bg-white border border-blue-200 rounded-md p-0.5 shadow-sm"
+              >
+                <Input
+                  placeholder="Instructions (optional)..."
+                  value={addMoreInstructions}
+                  onChange={(e) => setAddMoreInstructions(e.target.value)}
+                  className="h-7 text-xs w-40 border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onAddMore(addMoreInstructions);
+                    if (e.key === 'Escape') setShowAddMoreOptions(false);
+                  }}
+                />
+                <Button 
+                  size="sm" 
+                  className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold"
+                  onClick={() => onAddMore(addMoreInstructions)}
+                  disabled={isAddingMore}
+                >
+                  {isAddingMore ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Add'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 px-1.5 text-slate-400 hover:text-slate-600"
+                  onClick={() => setShowAddMoreOptions(false)}
+                >
+                  <X size={14} />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <Button
             variant="outline"
             size="sm"
             onClick={addNewCard}
-            className="text-slate-600"
+            className="text-slate-600 h-8 text-xs"
           >
             <Plus className="mr-2 h-4 w-4" />
             Manual Add
