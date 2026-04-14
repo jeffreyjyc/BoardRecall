@@ -1,5 +1,5 @@
 > [!TIP]
-> Check to see the latest branch labelled **current** for the "stable" version.
+> The Main Branch on Github is most likely unstable! Check to see the latest branch labelled **current** for the "stable" version. 
 
 # BoardRecall - Smart Medical Exam Companion
 
