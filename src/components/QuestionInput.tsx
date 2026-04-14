@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { ImagePlus, X, Send, Loader2, Info, MousePointer2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 interface QuestionInputProps {
   onGenerate: (text: string, images: string[], instructions: string) => void;
@@ -22,6 +23,29 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isExtension = typeof chrome !== 'undefined' && !!chrome.tabs;
+
+  useEffect(() => {
+    if (!isExtension) return;
+
+    // Listen for storage changes (from content script copy events)
+    const handleStorageChange = (changes: { [key: string]: chrome.storage.StorageChange }) => {
+      if (changes.lastCopiedText?.newValue) {
+        setText(String(changes.lastCopiedText.newValue));
+        toast.success("Text synced from page!");
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+    
+    // Initial check for any previously copied text
+    chrome.storage.local.get(['lastCopiedText'], (result) => {
+      if (result.lastCopiedText && !text) {
+        setText(String(result.lastCopiedText));
+      }
+    });
+
+    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+  }, [isExtension, text]);
 
   const handleGrabFromPage = async () => {
     if (!isExtension) return;
@@ -85,15 +109,21 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
               Question & Explanation Text
             </Label>
             {isExtension && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGrabFromPage}
-                className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5"
-              >
-                <MousePointer2 size={14} />
-                Grab from Page
-              </Button>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] h-5 bg-green-50 text-green-600 border-green-200 gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  Sync Active
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGrabFromPage}
+                  className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5"
+                >
+                  <MousePointer2 size={14} />
+                  Grab from Page
+                </Button>
+              </div>
             )}
           </div>
           <Textarea

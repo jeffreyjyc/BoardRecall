@@ -3,11 +3,12 @@
   "name": "Medical Board Flashcard & Question Generator",
   "version": "1.0.0",
   "description": "Generate flashcards and board questions from UWorld and TrueLearn.",
-  "permissions": ["activeTab", "scripting", "storage", "sidePanel"],
+  "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardRead"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "*://*.uworld.com/*",
-    "*://*.truelearn.com/*"
+    "*://*.truelearn.com/*",
+    "*://*.truelearn.net/*"
   ],
   "side_panel": {
     "default_path": "index.html"
@@ -19,14 +20,15 @@
     "default_popup": "index.html",
     "default_title": "Open Generator"
   },
-  "action": {
-    "default_popup": "index.html",
-    "default_title": "Open Generator"
-  },
   "content_scripts": [
     {
-      "matches": ["*://*.uworld.com/*", "*://*.truelearn.com/*"],
-      "js": ["content.js"]
+      "matches": [
+        "*://*.uworld.com/*", 
+        "*://*.truelearn.com/*",
+        "*://*.truelearn.net/*"
+      ],
+      "js": ["content.js"],
+      "all_frames": true
     }
   ]
 }
