@@ -1,0 +1,219 @@
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trash2, Check, Edit2, X, Plus, Sparkles, Loader2, Download } from 'lucide-react';
+import { Flashcard } from '../types';
+import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
+
+interface FlashcardEditorProps {
+  cards: Flashcard[];
+  onUpdate: (cards: Flashcard[]) => void;
+  onAddMore: () => void;
+  isAddingMore: boolean;
+}
+
+import { v4 as uuidv4 } from 'uuid';
+
+export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: FlashcardEditorProps) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Flashcard | null>(null);
+
+  const startEditing = (card: Flashcard) => {
+    setEditingId(card.id);
+    setEditForm({ ...card });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  const saveEdit = () => {
+    if (!editForm) return;
+    onUpdate(cards.map(c => c.id === editForm.id ? editForm : c));
+    setEditingId(null);
+    setEditForm(null);
+  };
+
+  const deleteCard = (id: string) => {
+    onUpdate(cards.filter(c => c.id !== id));
+  };
+
+  const addNewCard = () => {
+    const newCard: Flashcard = {
+      id: uuidv4(),
+      front: '',
+      back: '',
+      tags: [],
+      hint: ''
+    };
+    onUpdate([...cards, newCard]);
+    startEditing(newCard);
+  };
+
+  const exportToAnki = () => {
+    if (cards.length === 0) {
+      toast.error("No cards to export");
+      return;
+    }
+
+    // Format: Cloze Text | Back Info
+    // The cards now already contain {{c1::...}} syntax
+    const content = cards.map(card => {
+      return `${card.front} | ${card.back}`;
+    }).join('\n');
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `medflash_anki_export_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Exported to Anki format (.txt)");
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto pb-20">
+      <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-sm py-4 z-10 border-b border-slate-200 px-4 -mx-4">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Review Flashcards</h2>
+          <p className="text-sm text-slate-500">{cards.length} cards generated</p>
+        </div>
+        <div className="flex flex-wrap gap-2 justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToAnki}
+            className="text-green-600 border-green-200 hover:bg-green-50"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export to Anki
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onAddMore}
+            disabled={isAddingMore}
+            className="text-blue-600 border-blue-200 hover:bg-blue-50"
+          >
+            {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+            AI Add More
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addNewCard}
+            className="text-slate-600"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Manual Add
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4">
+        <AnimatePresence mode="popLayout">
+          {cards.map((card) => (
+            <motion.div
+              key={card.id}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <Card className={`border-slate-200 transition-all ${editingId === card.id ? 'ring-2 ring-blue-500 shadow-lg' : 'hover:shadow-md'}`}>
+                <CardContent className="p-6">
+                  {editingId === card.id ? (
+                    <div className="space-y-4">
+                      <div className="grid gap-2">
+                        <Label className="text-xs font-bold uppercase text-slate-400">Front (Anki Cloze Style)</Label>
+                        <Textarea
+                          value={editForm?.front}
+                          onChange={(e) => setEditForm(prev => prev ? { ...prev, front: e.target.value } : null)}
+                          placeholder="The {{c1::blank::hint}} is..."
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label className="text-xs font-bold uppercase text-slate-400">Back (Explanation)</Label>
+                        <Textarea
+                          value={editForm?.back}
+                          onChange={(e) => setEditForm(prev => prev ? { ...prev, back: e.target.value } : null)}
+                          placeholder="Detailed context..."
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="ghost" size="sm" onClick={cancelEditing}>
+                          <X className="mr-2 h-4 w-4" /> Cancel
+                        </Button>
+                        <Button size="sm" onClick={saveEdit} className="bg-blue-600 hover:bg-blue-700">
+                          <Check className="mr-2 h-4 w-4" /> Save Changes
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group relative">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex flex-wrap gap-1">
+                          {card.tags.map((tag, i) => (
+                            <Badge key={i} variant="secondary" className="bg-slate-100 text-slate-600 text-[10px] font-medium">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => startEditing(card)}>
+                            <Edit2 size={16} />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={() => deleteCard(card.id)}>
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-xs font-bold uppercase text-slate-400 mb-1">Front</p>
+                          <p className="text-slate-800 font-medium leading-relaxed">
+                            {card.front.split(/(\{\{c\d::.*?\}\})/).map((part, i) => {
+                              const match = part.match(/\{\{c\d::(.*?)(?:::(.*?))?\}\}/);
+                              if (match) {
+                                const answer = match[1];
+                                const hint = match[2];
+                                return (
+                                  <span key={i} className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 font-bold mx-0.5">
+                                    {answer}
+                                    {hint && <span className="text-[10px] text-blue-400 ml-1 font-normal italic">({hint})</span>}
+                                  </span>
+                                );
+                              }
+                              return part;
+                            })}
+                          </p>
+                        </div>
+                        <div className="pt-3 border-t border-slate-100">
+                          <p className="text-xs font-bold uppercase text-slate-400 mb-1">Back</p>
+                          <p className="text-sm text-slate-600 leading-relaxed">{card.back}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
