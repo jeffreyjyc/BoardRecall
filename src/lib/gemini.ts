@@ -224,7 +224,7 @@ export async function generateFlashcards(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
   const model = currentSettings.geminiModel || "gemini-2.0-flash";
   
   const parts: any[] = [{ text: userPrompt }];
@@ -270,7 +270,7 @@ export async function generateFlashcards(
       if (errorMessage.toLowerCase().includes("rate limit")) {
         throw new Error("Rate limit reached. Please wait a few seconds and try again.");
       }
-      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }
@@ -308,7 +308,7 @@ export async function addMoreFlashcards(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
   const model = currentSettings.geminiModel || "gemini-2.0-flash";
 
   try {
@@ -342,7 +342,7 @@ export async function addMoreFlashcards(
       if (errorMessage.toLowerCase().includes("rate limit")) {
         throw new Error("Rate limit reached. Please wait a few seconds and try again.");
       }
-      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }
@@ -385,7 +385,7 @@ export async function generateBoardQuestions(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
+  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
   const model = currentSettings.geminiModel || "gemini-2.0-flash";
 
   try {
@@ -419,7 +419,7 @@ export async function generateBoardQuestions(
       if (errorMessage.toLowerCase().includes("rate limit")) {
         throw new Error("Rate limit reached. Please wait a few seconds and try again.");
       }
-      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }

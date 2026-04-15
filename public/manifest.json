@@ -4,6 +4,12 @@
   "version": "1.0.0",
   "description": "Generate flashcards and board questions from UWorld and TrueLearn.",
   "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardRead", "tabs"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "boardrecall@example.com",
+      "strict_min_version": "109.0"
+    }
+  },
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "*://*.uworld.com/*",
@@ -15,6 +21,9 @@
   },
   "side_panel": {
     "default_path": "index.html"
+  },
+  "sidebar_action": {
+    "default_panel": "index.html"
   },
   "background": {
     "service_worker": "background.js"

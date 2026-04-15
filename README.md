@@ -26,7 +26,7 @@ To use BoardRecall as a sidebar or popup in your browser, follow these steps:
 
 ### Step 1: Prepare the Code
 1. Download the source code to your computer.
-2. Open your terminal (Command Prompt, PowerShell, or Terminal).
+2. Open your terminal (Command Prompt, PowerShell, or Terminal). **Make sure to run as admin
 3. Navigate to the project folder:
    ```bash
    cd path/to/boardrecall
@@ -50,7 +50,14 @@ To use BoardRecall as a sidebar or popup in your browser, follow these steps:
 4. Navigate to your project folder and select the **`dist`** folder.
 5. BoardRecall should now appear in your extensions list!
 
-### Step 3: Pin and Open
+### Step 3: Install in Firefox
+1. Open Firefox and navigate to the debugging page:
+   - Type `about:debugging#/runtime/this-firefox` in the address bar.
+2. Click the **Load Temporary Add-on...** button.
+3. Navigate to your project folder, open the **`dist`** folder, and select the **`manifest.json`** file.
+4. BoardRecall is now loaded! You can open it from the Extensions menu or the Sidebar.
+
+### Step 4: Pin and Open
 1. Click the "Puzzle" icon (Extensions) in your browser toolbar.
 2. Find **BoardRecall** and click the "Pin" icon.
 3. Click the BoardRecall icon to open the generator.
@@ -70,6 +77,7 @@ You do **not** need to modify any code files to set up your API key.
 4. **Local (Ollama)**:
    - If you have Ollama running locally, switch to the "Local" tab and configure your endpoint.
 
+**Google is always updating models which can cause previously used models to go offline**
 ---
 
 ## 🖥️ Running as a Full Browser Page
