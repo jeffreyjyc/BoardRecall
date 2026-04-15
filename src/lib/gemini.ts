@@ -54,6 +54,18 @@ export async function loadSettings(): Promise<AppSettings> {
 // Initial load
 export const settingsLoaded = loadSettings();
 
+// Listen for changes from other parts of the extension (e.g., Popup vs SidePanel)
+if (typeof chrome !== 'undefined' && chrome.storage) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes['med-flashcard-settings']) {
+      const newSettings = changes['med-flashcard-settings'].newValue as Partial<AppSettings>;
+      if (newSettings && typeof newSettings === 'object') {
+        currentSettings = { ...currentSettings, ...newSettings };
+      }
+    }
+  });
+}
+
 export function updateSettings(settings: Partial<AppSettings>) {
   currentSettings = { ...currentSettings, ...settings };
   if (typeof chrome !== 'undefined' && chrome.storage) {
@@ -252,7 +264,13 @@ export async function generateFlashcards(
       throw new Error("Invalid API Key. Please check your Gemini settings.");
     }
     if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }
@@ -318,7 +336,13 @@ export async function addMoreFlashcards(
       throw new Error("Invalid API Key. Please check your Gemini settings.");
     }
     if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }
@@ -389,7 +413,13 @@ export async function generateBoardQuestions(
       throw new Error("Invalid API Key. Please check your Gemini settings.");
     }
     if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error("Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview.");
     }
     throw new Error(`AI Error: ${errorMessage}`);
   }
