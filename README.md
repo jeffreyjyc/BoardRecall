@@ -11,7 +11,7 @@ BoardRecall is a powerful tool designed for medical students to convert clinical
 - **Clipboard Sync**: Copy text on the page (Ctrl+C or Ctrl+Insert) and it instantly appears in the extension.
 - **Anki-Style Flashcards**: Generates cloze-deletion cards optimized for long-term retention.
 - **Board Question Generator**: Creates new clinical vignettes based on your study material to test your understanding.
-- **Multi-AI Support**: Use Gemini (Free Tier), OpenAI (GPT-4o), or run locally using Ollama.
+- **Multi-AI Support**: Use Gemini (Free Tier) or run locally using Ollama.
 
 ---
 
@@ -66,11 +66,8 @@ You do **not** need to modify any code files to set up your API key.
 3. **Gemini (Recommended)**: 
    - Get a free key from [Google AI Studio](https://aistudio.google.com/app/apikey).
    - Paste it into the "Gemini API Key" field.
-   - Choose between Flash (Free) or Pro (Paid).
-4. **OpenAI**:
-   - Paste your OpenAI API key.
-   - Select your preferred model (GPT-4o, GPT-4o-mini, etc.).
-5. **Local (Ollama)**:
+   - Choose between Gemini 1.5 Flash (Free) or Gemini 2.0 Flash.
+4. **Local (Ollama)**:
    - If you have Ollama running locally, switch to the "Local" tab and configure your endpoint.
 
 ---

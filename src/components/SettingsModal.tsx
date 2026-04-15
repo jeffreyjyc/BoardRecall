@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Settings, Save, Globe, Cpu, ExternalLink, Zap } from 'lucide-react';
+import { Settings, Save, Globe, Cpu, ExternalLink } from 'lucide-react';
 import { AppSettings } from '../types';
 import { updateSettings, getSettings } from '../lib/gemini';
 import { toast } from 'sonner';
@@ -41,14 +41,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         </CardHeader>
         <CardContent className="space-y-6">
           <Tabs value={settings.provider} onValueChange={(v) => setSettings(s => ({ ...s, provider: v as any }))}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="gemini" className="flex items-center gap-2">
                 <Globe className="w-4 h-4" />
                 Gemini
-              </TabsTrigger>
-              <TabsTrigger value="openai" className="flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                OpenAI
               </TabsTrigger>
               <TabsTrigger value="local" className="flex items-center gap-2">
                 <Cpu className="w-4 h-4" />
@@ -65,9 +61,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   value={settings.geminiModel}
                   onChange={(e) => setSettings(s => ({ ...s, geminiModel: e.target.value }))}
                 >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Fastest)</option>
-                  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Balanced)</option>
-                  <option value="gemini-1.5-pro">Gemini 1.5 Pro (Highest Quality)</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-3-flash-preview">Gemini 3.0 Flash Preview</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -89,35 +84,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   >
                     Google AI Studio <ExternalLink size={10} />
                   </a>
-                </p>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="openai" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="openai-model">OpenAI Model</Label>
-                <select 
-                  id="openai-model"
-                  className="w-full h-10 px-3 py-2 rounded-md border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={settings.openaiModel}
-                  onChange={(e) => setSettings(s => ({ ...s, openaiModel: e.target.value }))}
-                >
-                  <option value="gpt-4o-mini">GPT-4o Mini (Fast & Cheap)</option>
-                  <option value="gpt-4o">GPT-4o (High Quality)</option>
-                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="openai-key">OpenAI API Key</Label>
-                <Input
-                  id="openai-key"
-                  type="password"
-                  placeholder="sk-..."
-                  value={settings.openaiApiKey}
-                  onChange={(e) => setSettings(s => ({ ...s, openaiApiKey: e.target.value }))}
-                />
-                <p className="text-[10px] text-slate-500">
-                  Requires a paid OpenAI API account.
                 </p>
               </div>
             </TabsContent>

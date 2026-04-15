@@ -7,20 +7,30 @@ let currentSettings: AppSettings = {
   provider: 'gemini',
   geminiApiKey: process.env.GEMINI_API_KEY || "",
   geminiModel: "gemini-2.0-flash",
-  openaiApiKey: "",
-  openaiModel: "gpt-4o-mini",
   localEndpoint: "http://localhost:11434/v1", // Default Ollama OpenAI-compatible endpoint
   localModel: "llama3",
 };
 
 // Load settings from storage
 export async function loadSettings(): Promise<AppSettings> {
+  const validateAndMigrate = (settings: AppSettings): AppSettings => {
+    // Migrate away from deprecated models
+    if (settings.geminiModel === "gemini-1.5-flash" || settings.geminiModel === "gemini-1.5-pro") {
+      settings.geminiModel = "gemini-2.0-flash";
+    }
+    // Migrate away from deprecated providers
+    if (settings.provider as string === 'openai') {
+      settings.provider = 'gemini';
+    }
+    return settings;
+  };
+
   if (typeof chrome !== 'undefined' && chrome.storage) {
     return new Promise((resolve) => {
       chrome.storage.local.get(['med-flashcard-settings'], (result) => {
         const savedSettings = result['med-flashcard-settings'];
         if (savedSettings && typeof savedSettings === 'object') {
-          currentSettings = { ...currentSettings, ...(savedSettings as Partial<AppSettings>) };
+          currentSettings = validateAndMigrate({ ...currentSettings, ...(savedSettings as Partial<AppSettings>) });
         }
         resolve(currentSettings);
       });
@@ -31,7 +41,8 @@ export async function loadSettings(): Promise<AppSettings> {
     const saved = localStorage.getItem('med-flashcard-settings');
     if (saved) {
       try {
-        currentSettings = { ...currentSettings, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        currentSettings = validateAndMigrate({ ...currentSettings, ...parsed });
       } catch (e) {
         console.error("Failed to parse settings", e);
       }
@@ -41,7 +52,7 @@ export async function loadSettings(): Promise<AppSettings> {
 }
 
 // Initial load
-loadSettings();
+export const settingsLoaded = loadSettings();
 
 export function updateSettings(settings: Partial<AppSettings>) {
   currentSettings = { ...currentSettings, ...settings };
@@ -120,45 +131,6 @@ const BOARD_QUESTION_SCHEMA = {
   },
 };
 
-async function callOpenAI(systemPrompt: string, userPrompt: string, schema: any): Promise<any> {
-  const { openaiApiKey, openaiModel } = currentSettings;
-  
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`,
-      },
-      body: JSON.stringify({
-        model: openaiModel,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        response_format: { type: "json_object" },
-        temperature: 0.1,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(`OpenAI error: ${err.error?.message || response.statusText}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    const parsed = JSON.parse(content);
-    
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed.items && Array.isArray(parsed.items)) return parsed.items;
-    return parsed;
-  } catch (error) {
-    console.error("OpenAI call failed:", error);
-    throw error;
-  }
-}
-
 async function callLocalLLM(systemPrompt: string, userPrompt: string, schema: any): Promise<any> {
   const { localEndpoint, localModel } = currentSettings;
   
@@ -207,6 +179,12 @@ export async function generateFlashcards(
   images: string[] = [],
   customInstructions: string = ""
 ): Promise<Flashcard[]> {
+  await settingsLoaded;
+  
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical educator specializing in USMLE Step 1 and Step 2 board exams.
     Your task is to convert medical board exam questions and their explanations into high-yield, effective flashcards.
@@ -228,14 +206,6 @@ export async function generateFlashcards(
 
   if (currentSettings.provider === 'local') {
     const result = await callLocalLLM(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
-    return result.map((card: any) => ({
-      ...card,
-      id: uuidv4(),
-    }));
-  }
-
-  if (currentSettings.provider === 'openai') {
-    const result = await callOpenAI(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
@@ -275,9 +245,16 @@ export async function generateFlashcards(
       ...card,
       id: uuidv4(),
     }));
-  } catch (error) {
-    console.error("Error generating flashcards:", error);
-    throw new Error("Failed to generate flashcards. Please check your API key and input.");
+  } catch (error: any) {
+    console.error("Detailed Gemini Error:", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
 
@@ -286,6 +263,12 @@ export async function addMoreFlashcards(
   originalContent: string,
   customInstructions: string = ""
 ): Promise<Flashcard[]> {
+  await settingsLoaded;
+  
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical educator. 
     The user has already generated some flashcards from a medical question.
@@ -301,14 +284,6 @@ export async function addMoreFlashcards(
 
   if (currentSettings.provider === 'local') {
     const result = await callLocalLLM(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
-    return result.map((card: any) => ({
-      ...card,
-      id: uuidv4(),
-    }));
-  }
-
-  if (currentSettings.provider === 'openai') {
-    const result = await callOpenAI(systemInstruction, userPrompt, FLASHCARD_SCHEMA);
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
@@ -336,15 +311,28 @@ export async function addMoreFlashcards(
       ...card,
       id: uuidv4(),
     }));
-  } catch (error) {
-    console.error("Error adding more flashcards:", error);
-    throw new Error("Failed to generate additional cards.");
+  } catch (error: any) {
+    console.error("Detailed Gemini Error (Add More):", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
 
 export async function generateBoardQuestions(
   originalContent: string
 ): Promise<BoardQuestion[]> {
+  await settingsLoaded;
+  
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical board exam question writer for USMLE Step 1 and Step 2.
     Your task is to generate NEW board-style questions based on the provided medical content.
@@ -373,14 +361,6 @@ export async function generateBoardQuestions(
     }));
   }
 
-  if (currentSettings.provider === 'openai') {
-    const result = await callOpenAI(systemInstruction, userPrompt, BOARD_QUESTION_SCHEMA);
-    return result.map((q: any) => ({
-      ...q,
-      id: uuidv4(),
-    }));
-  }
-
   const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey });
   const model = currentSettings.geminiModel || "gemini-2.0-flash";
 
@@ -402,8 +382,15 @@ export async function generateBoardQuestions(
       ...q,
       id: uuidv4(),
     }));
-  } catch (error) {
-    console.error("Error generating board questions:", error);
-    throw new Error("Failed to generate new board questions.");
+  } catch (error: any) {
+    console.error("Detailed Gemini Error (Board Qs):", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" not found or not available for your API key. Try switching to Gemini 2.0 Flash in settings.`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
