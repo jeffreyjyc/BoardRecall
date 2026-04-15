@@ -73,7 +73,7 @@ You do **not** need to modify any code files to set up your API key.
 3. **Gemini (Recommended)**: 
    - Get a free key from [Google AI Studio](https://aistudio.google.com/app/apikey).
    - Paste it into the "Gemini API Key" field.
-   - Choose between Gemini 1.5 Flash (Free) or Gemini 2.0 Flash.
+   - Choose between Gemini 2.0 Flash or Gemini 3.0 Flash. (Gemini 3.0 is currently less likely to hit quota)
 4. **Local (Ollama)**:
    - If you have Ollama running locally, switch to the "Local" tab and configure your endpoint.
 
