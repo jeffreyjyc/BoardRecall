@@ -25,8 +25,8 @@ Before you begin, make sure you have **Node.js** installed on your computer. Thi
 To use BoardRecall as a sidebar or popup in your browser, follow these steps:
 
 ### Step 1: Prepare the Code
-1. Download the source code to your computer.
-2. Open your terminal (Command Prompt, PowerShell, or Terminal). **Make sure to run as admin
+1. Download the source code to your computer. Make sure to extract the zip file. 
+2. Open your terminal (Command Prompt, PowerShell, or Terminal). **Make sure to run as administrator
 3. Navigate to the project folder:
    ```bash
    cd path/to/boardrecall
