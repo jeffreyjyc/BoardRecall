@@ -85,20 +85,22 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-20">
-      <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-sm py-4 z-10 border-b border-slate-200 px-4 -mx-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-sm py-4 z-10 border-b border-slate-200 px-4 -mx-4 gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">Review Flashcards</h2>
-          <p className="text-sm text-slate-500">{cards.length} cards generated</p>
+          <h2 className="text-lg sm:text-xl font-bold text-slate-800">Review Flashcards</h2>
+          <p className="text-xs text-slate-500">{cards.length} cards generated</p>
         </div>
-        <div className="flex flex-wrap gap-2 justify-end items-center">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end items-center">
           <Button
             variant="outline"
             size="sm"
             onClick={exportToAnki}
-            className="text-green-600 border-green-200 hover:bg-green-50 h-8 text-xs"
+            className="text-green-600 border-green-200 hover:bg-green-50 h-8 text-xs shrink-0"
+            title="Export to Anki"
           >
-            <Download className="mr-2 h-4 w-4" />
-            Export to Anki
+            <Download className="sm:mr-2 h-4 w-4" />
+            <span className="hidden min-[450px]:inline">Export to Anki</span>
+            <span className="min-[450px]:hidden">Export</span>
           </Button>
 
           <AnimatePresence mode="wait">
@@ -108,6 +110,7 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
+                className="shrink-0"
               >
                 <Button
                   variant="outline"
@@ -116,8 +119,9 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                   disabled={isAddingMore}
                   className="text-blue-600 border-blue-200 hover:bg-blue-50 h-8 text-xs"
                 >
-                  {isAddingMore ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                  AI Add More
+                  {isAddingMore ? <Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="sm:mr-2 h-4 w-4" />}
+                  <span className="hidden min-[450px]:inline">AI Add More</span>
+                  <span className="min-[450px]:hidden">Add+</span>
                 </Button>
               </motion.div>
             ) : (
@@ -126,13 +130,13 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
-                className="flex items-center gap-1 bg-white border border-blue-200 rounded-md p-0.5 shadow-sm"
+                className="flex items-center gap-1 bg-white border border-blue-200 rounded-md p-0.5 shadow-sm max-w-full"
               >
                 <Input
-                  placeholder="Instructions (optional)..."
+                  placeholder="Instructions..."
                   value={addMoreInstructions}
                   onChange={(e) => setAddMoreInstructions(e.target.value)}
-                  className="h-7 text-xs w-40 border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="h-7 text-xs w-24 min-w-[60px] sm:w-40 border-none focus-visible:ring-0 focus-visible:ring-offset-0"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') onAddMore(addMoreInstructions);
@@ -141,7 +145,7 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                 />
                 <Button 
                   size="sm" 
-                  className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold"
+                  className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold shrink-0"
                   onClick={() => onAddMore(addMoreInstructions)}
                   disabled={isAddingMore}
                 >
@@ -150,7 +154,7 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-7 px-1.5 text-slate-400 hover:text-slate-600"
+                  className="h-7 px-1.5 text-slate-400 hover:text-slate-600 shrink-0"
                   onClick={() => setShowAddMoreOptions(false)}
                 >
                   <X size={14} />
@@ -163,10 +167,11 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
             variant="outline"
             size="sm"
             onClick={addNewCard}
-            className="text-slate-600 h-8 text-xs"
+            className="text-slate-600 h-8 text-xs shrink-0"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Manual Add
+            <Plus className="sm:mr-2 h-4 w-4" />
+            <span className="hidden min-[450px]:inline">Manual Add</span>
+            <span className="min-[450px]:hidden">Add</span>
           </Button>
         </div>
       </div>

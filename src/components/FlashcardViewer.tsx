@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Flashcard } from '../types';
@@ -13,15 +13,22 @@ interface FlashcardViewerProps {
 export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [showCloze, setShowCloze] = useState(false);
+  const [revealedCount, setRevealedCount] = useState(0);
 
   const currentCard = cards[currentIndex];
+
+  const clozeMatches = useMemo(() => {
+    if (!currentCard) return [];
+    return currentCard.front.match(/\{\{c\d::.*?\}\}/g) || [];
+  }, [currentCard]);
+
+  const maxReveals = clozeMatches.length;
 
   const nextCard = () => {
     if (currentIndex < cards.length - 1) {
       setCurrentIndex(prev => prev + 1);
       setIsFlipped(false);
-      setShowCloze(false);
+      setRevealedCount(0);
     }
   };
 
@@ -29,11 +36,20 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       setIsFlipped(false);
-      setShowCloze(false);
+      setRevealedCount(0);
     }
   };
 
   const toggleFlip = () => setIsFlipped(!isFlipped);
+
+  const toggleReveal = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (revealedCount < maxReveals) {
+      setRevealedCount(prev => prev + 1);
+    } else {
+      setRevealedCount(0);
+    }
+  };
 
   if (!currentCard) return null;
 
@@ -61,54 +77,61 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
               className={`w-full h-full cursor-pointer shadow-2xl border-none overflow-hidden ${isFlipped ? 'bg-slate-50' : 'bg-white'}`}
               onClick={toggleFlip}
             >
-              <CardContent className="h-full flex flex-col items-center justify-center p-12 text-center">
+              <CardContent className="h-full flex flex-col items-center justify-center p-6 sm:p-12 text-center">
                 {!isFlipped ? (
                   <div className="space-y-6">
-                    <p className="text-2xl font-medium text-slate-800 leading-relaxed">
-                      {currentCard.front.split(/(\{\{c\d::.*?\}\})/).map((part, i) => {
-                        const match = part.match(/\{\{c\d::(.*?)(?:::(.*?))?\}\}/);
-                        if (match) {
-                          const answer = match[1];
-                          const hint = match[2];
-                          return (
-                            <span 
-                              key={i} 
-                              className={`transition-all duration-300 px-2 py-0.5 rounded border ${
-                                showCloze 
-                                  ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                  : 'bg-slate-200 text-transparent border-slate-300 select-none'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShowCloze(!showCloze);
-                              }}
-                            >
-                              {showCloze ? answer : (hint || '...')}
-                            </span>
-                          );
-                        }
-                        return part;
-                      })}
+                    <p className="text-xl sm:text-2xl font-medium text-slate-800 leading-relaxed overflow-y-auto max-h-[300px]">
+                      {(() => {
+                        let matchCount = 0;
+                        return currentCard.front.split(/(\{\{c\d::.*?\}\})/).map((part, i) => {
+                          const match = part.match(/\{\{c\d::(.*?)(?:::(.*?))?\}\}/);
+                          if (match) {
+                            matchCount++;
+                            const answer = match[1];
+                            const hint = match[2];
+                            const isRevealed = matchCount <= revealedCount;
+                            
+                            return (
+                              <span 
+                                key={i} 
+                                className={`transition-all duration-300 px-2 py-0.5 rounded border ${
+                                  isRevealed 
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                    : 'bg-slate-200 text-transparent border-slate-300 select-none'
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isRevealed && matchCount === revealedCount + 1) {
+                                    setRevealedCount(matchCount);
+                                  } else if (isRevealed) {
+                                    setRevealedCount(matchCount - 1);
+                                  }
+                                }}
+                              >
+                                {isRevealed ? answer : (hint || '...')}
+                              </span>
+                            );
+                          }
+                          return part;
+                        });
+                      })()}
                     </p>
                     <div className="pt-8">
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         className="text-slate-400"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowCloze(!showCloze);
-                        }}
+                        onClick={toggleReveal}
                       >
-                        {showCloze ? <EyeOff size={16} className="mr-2" /> : <Eye size={16} className="mr-2" />}
-                        {showCloze ? 'Hide Answer' : 'Show Answer'}
+                        {revealedCount >= maxReveals ? <EyeOff size={16} className="mr-2" /> : <Eye size={16} className="mr-2" />}
+                        {revealedCount >= maxReveals ? 'Hide All' : revealedCount === 0 ? 'Show Answer' : 'Show Next'}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4 max-w-md">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-blue-500">Explanation</h3>
-                    <p className="text-lg text-slate-600 leading-relaxed">
+                    <p className="text-base sm:text-lg text-slate-600 leading-relaxed overflow-y-auto max-h-[300px]">
                       {currentCard.back}
                     </p>
                   </div>

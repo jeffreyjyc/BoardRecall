@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2 } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
@@ -134,60 +134,62 @@ export default function App() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-        <Toaster position="top-center" />
+        <Toaster position="top-center" closeButton />
         
         {/* Header */}
-        <header className="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-30">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
+        <header className="bg-white border-b border-slate-200 py-4 px-4 sm:px-6 sticky top-0 z-30">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
             <div 
-              className="flex items-center gap-2 cursor-pointer group"
+              className="flex items-center gap-2 cursor-pointer group shrink-0"
               onClick={() => setView('home')}
             >
-              <div className="bg-blue-600 p-2 rounded-lg text-white group-hover:bg-blue-700 transition-colors">
-                <Stethoscope size={24} />
+              <div className="bg-blue-600 p-2 rounded-lg text-white group-hover:bg-blue-700 transition-colors shrink-0">
+                <Stethoscope size={20} className="sm:w-6 sm:h-6" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight text-slate-800">BoardRecall</h1>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-none">Smart Exam Companion</p>
+              <div className="hidden min-[400px]:block">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-slate-800">BoardRecall</h1>
+                <p className="text-[9px] sm:text-[10px] font-bold text-blue-500 uppercase tracking-widest leading-none">Smart Exam Companion</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 sm:gap-4 overflow-x-hidden">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-600 hover:text-blue-600"
+                className="text-slate-600 hover:text-blue-600 px-2"
                 onClick={openInNewTab}
                 title="Open in New Tab"
               >
-                <Maximize2 size={18} className="mr-2" />
-                Full Page
+                <Maximize2 size={18} className="sm:mr-2" />
+                <span className="hidden sm:inline">Full Page</span>
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-600 hover:text-blue-600"
+                className="text-slate-600 hover:text-blue-600 px-2"
                 onClick={() => setShowSettings(true)}
               >
-                <SettingsIcon size={18} className="mr-2" />
-                Settings
+                <SettingsIcon size={18} className="sm:mr-2" />
+                <span className="hidden sm:inline">Settings</span>
               </Button>
               {view === 'edit' && (
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button 
                     onClick={saveCurrentSet}
-                    className="bg-green-600 hover:bg-green-700 text-white"
+                    className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 text-xs sm:text-sm"
                   >
-                    Save & Finish
+                    Save<span className="hidden sm:inline">&nbsp;& Finish</span>
                   </Button>
                 </div>
               )}
               {view === 'home' && (
                 <Button 
                   onClick={() => setView('input')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 text-xs sm:text-sm"
                 >
-                  <Plus className="mr-2 h-4 w-4" /> New Question
+                  <Plus className="sm:mr-2 h-4 w-4" /> 
+                  <span className="hidden sm:inline">New Question</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               )}
             </div>
@@ -322,20 +324,27 @@ export default function App() {
                 exit={{ opacity: 0 }}
               >
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <div className="flex items-center justify-between mb-6">
-                    <TabsList className="bg-slate-100 p-1">
-                      <TabsTrigger value="flashcards" className="px-6">
-                        <BookOpen className="mr-2 h-4 w-4" />
-                        Flashcards
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4">
+                    <TabsList className="bg-slate-100 p-1 w-full sm:w-auto">
+                      <TabsTrigger value="flashcards" className="flex-1 sm:px-6">
+                        <BookOpen className="sm:mr-2 h-4 w-4" />
+                        <span className="hidden min-[400px]:inline">Flashcards</span>
+                        <span className="min-[400px]:hidden">Cards</span>
                       </TabsTrigger>
-                      <TabsTrigger value="practice" className="px-6">
-                        <GraduationCap className="mr-2 h-4 w-4" />
-                        Practice Questions
+                      <TabsTrigger value="practice" className="flex-1 sm:px-6">
+                        <GraduationCap className="sm:mr-2 h-4 w-4" />
+                        <span className="hidden min-[400px]:inline">Practice Questions</span>
+                        <span className="min-[400px]:hidden">Practice</span>
                         {currentSet.relatedQuestions && currentSet.relatedQuestions.length > 0 && (
                           <Badge className="ml-2 bg-blue-600 text-[10px] h-4 px-1 min-w-[16px] flex items-center justify-center">
                             {currentSet.relatedQuestions.length}
                           </Badge>
                         )}
+                      </TabsTrigger>
+                      <TabsTrigger value="source" className="flex-1 sm:px-6">
+                        <FileText className="sm:mr-2 h-4 w-4" />
+                        <span className="hidden min-[400px]:inline">Source Stem</span>
+                        <span className="min-[400px]:hidden">Source</span>
                       </TabsTrigger>
                     </TabsList>
 
@@ -345,10 +354,11 @@ export default function App() {
                         size="sm"
                         onClick={handleGenerateRelatedQuestions}
                         disabled={isGeneratingQuestions}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        className="text-blue-600 border-blue-200 hover:bg-blue-50 w-full sm:w-auto h-8 text-xs"
                       >
                         {isGeneratingQuestions ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                        Generate More Questions
+                        <span className="hidden sm:inline">Generate More Questions</span>
+                        <span className="sm:hidden">Generate More</span>
                       </Button>
                     )}
                   </div>
@@ -388,6 +398,22 @@ export default function App() {
                         </Button>
                       </div>
                     )}
+                  </TabsContent>
+
+                  <TabsContent value="source">
+                    <Card className="border-slate-200">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-2 mb-4 text-slate-400 uppercase text-xs font-bold">
+                          <FileText size={14} />
+                          <span>Original Question Stem</span>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-6 border border-slate-100">
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-wrap italic">
+                            {currentSet.originalText}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
                 </Tabs>
               </motion.div>
