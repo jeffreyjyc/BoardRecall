@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText, Check, Save } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText, Check, Save, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
@@ -16,7 +16,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
 import { SettingsModal } from './components/SettingsModal';
 
-type View = 'home' | 'input' | 'edit' | 'study';
+type View = 'home' | 'input' | 'edit' | 'study' | 'history';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
@@ -131,6 +131,32 @@ export default function App() {
     toast.info('Question set deleted');
   };
 
+  const exportAllHistory = () => {
+    if (history.length === 0) {
+      toast.error("No history to export");
+      return;
+    }
+
+    const allCards = history.flatMap(set => set.cards);
+    if (allCards.length === 0) {
+      toast.error("No cards found in history");
+      return;
+    }
+
+    const content = allCards.map(card => `${card.front} | ${card.back}`).join('\n');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `boardrecall_ALL_HISTORY_export_${new Date().getTime()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`Exported ${allCards.length} cards from ${history.length} sets`);
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -172,6 +198,17 @@ export default function App() {
                 <SettingsIcon size={18} className="sm:mr-2" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
+              {view === 'home' && history.length > 0 && (
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setView('history')}
+                  className="text-slate-600 hover:text-blue-600 px-2 h-9 flex-shrink-0"
+                >
+                  <History size={18} className="sm:mr-2" />
+                  <span className="hidden sm:inline">My History</span>
+                </Button>
+              )}
               {view === 'edit' && (
                 <div className="flex items-center">
                   <Button 
@@ -219,83 +256,135 @@ export default function App() {
                   <p className="text-slate-500 max-w-md">
                     Upload your medical board questions and let AI generate high-yield cloze-style flashcards for you.
                   </p>
-                  <Button 
-                    size="lg" 
-                    onClick={() => setView('input')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
-                  >
-                    Get Started
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      size="lg" 
+                      onClick={() => setView('input')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
+                    >
+                      New Flashcards
+                    </Button>
+                    {history.length > 0 && (
+                      <Button 
+                        size="lg"
+                        variant="outline"
+                        onClick={() => setView('history')}
+                        className="px-8 py-6 text-lg border-slate-200"
+                      >
+                        <History className="mr-2 h-5 w-5" />
+                        View History
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {view === 'history' && (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setView('home')}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <Plus className="rotate-45" />
+                    </Button>
+                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                      <History className="text-blue-600" />
+                      Study History
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={exportAllHistory}
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600 border-green-200 hover:bg-green-50 gap-2 h-9 flex-1 sm:flex-none"
+                    >
+                      <Download size={16} />
+                      Export All cards
+                    </Button>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 h-9 px-3 shrink-0">
+                      {history.length} Sets Total
+                    </Badge>
+                  </div>
                 </div>
 
-                {history.length > 0 && (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                      <History size={14} />
-                      <span>Recent Question Sets</span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {history.map((set) => (
-                        <Card key={set.id} className="group hover:shadow-md transition-all border-slate-200">
-                          <CardContent className="p-5">
-                            <div className="flex justify-between items-start mb-3">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">
-                                {new Date(set.createdAt).toLocaleDateString()}
-                              </span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-6 w-6 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => deleteSet(set.id)}
-                              >
-                                <Plus className="rotate-45" size={14} />
-                              </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {history.map((set) => (
+                    <Card key={set.id} className="group hover:shadow-md transition-all border-slate-200">
+                      <CardContent className="p-5">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">
+                            {new Date(set.createdAt).toLocaleDateString()}
+                          </span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => deleteSet(set.id)}
+                          >
+                            <Plus className="rotate-45" size={14} />
+                          </Button>
+                        </div>
+                        <h3 className="font-semibold text-slate-800 line-clamp-2 mb-4 h-12">
+                          {set.title}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1 text-blue-600 font-bold text-xs">
+                              <BookOpen size={12} />
+                              <span>{set.cards.length} Cards</span>
                             </div>
-                            <h3 className="font-semibold text-slate-800 line-clamp-2 mb-4 h-12">
-                              {set.title}
-                            </h3>
-                            <div className="flex items-center justify-between">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex items-center gap-1 text-blue-600 font-bold text-xs">
-                                  <BookOpen size={12} />
-                                  <span>{set.cards.length} Cards</span>
-                                </div>
-                                {set.relatedQuestions && set.relatedQuestions.length > 0 && (
-                                  <div className="flex items-center gap-1 text-purple-600 font-bold text-xs">
-                                    <GraduationCap size={12} />
-                                    <span>{set.relatedQuestions.length} Practice Qs</span>
-                                  </div>
-                                )}
+                            {set.relatedQuestions && set.relatedQuestions.length > 0 && (
+                              <div className="flex items-center gap-1 text-purple-600 font-bold text-xs">
+                                <GraduationCap size={12} />
+                                <span>{set.relatedQuestions.length} Qs</span>
                               </div>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="h-8 text-xs"
-                                  onClick={() => {
-                                    setCurrentSet(set);
-                                    setView('edit');
-                                    setActiveTab('flashcards');
-                                  }}
-                                >
-                                  Edit
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  className="h-8 text-xs bg-slate-800 hover:bg-slate-900 text-white"
-                                  onClick={() => {
-                                    setCurrentSet(set);
-                                    setView('study');
-                                  }}
-                                >
-                                  Study
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-8 text-xs"
+                              onClick={() => {
+                                setCurrentSet(set);
+                                setView('edit');
+                                setActiveTab('flashcards');
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="h-8 text-xs bg-slate-800 hover:bg-slate-900 text-white"
+                              onClick={() => {
+                                setCurrentSet(set);
+                                setView('study');
+                              }}
+                            >
+                              Study
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                
+                {history.length === 0 && (
+                  <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-200">
+                    <p className="text-slate-400">No questions in your history yet.</p>
                   </div>
                 )}
               </motion.div>
