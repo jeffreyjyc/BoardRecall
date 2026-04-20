@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText, Check, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
@@ -134,7 +134,7 @@ export default function App() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-        <Toaster position="top-center" closeButton />
+        <Toaster position="bottom-right" closeButton />
         
         {/* Header */}
         <header className="bg-white border-b border-slate-200 py-4 px-4 sm:px-6 sticky top-0 z-30">
@@ -152,11 +152,11 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-4 overflow-x-hidden">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-600 hover:text-blue-600 px-2"
+                className="text-slate-600 hover:text-blue-600 px-2 h-9 flex-shrink-0"
                 onClick={openInNewTab}
                 title="Open in New Tab"
               >
@@ -166,28 +166,33 @@ export default function App() {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-slate-600 hover:text-blue-600 px-2"
+                className="text-slate-600 hover:text-blue-600 px-2 h-9 flex-shrink-0"
                 onClick={() => setShowSettings(true)}
               >
                 <SettingsIcon size={18} className="sm:mr-2" />
                 <span className="hidden sm:inline">Settings</span>
               </Button>
               {view === 'edit' && (
-                <div className="flex gap-1">
+                <div className="flex items-center">
                   <Button 
-                    onClick={saveCurrentSet}
-                    className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 text-xs sm:text-sm"
+                    id="save-finish-button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      saveCurrentSet();
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white px-2 sm:px-4 h-9 text-xs sm:text-sm flex-shrink-0 whitespace-nowrap shadow-sm"
                   >
-                    Save<span className="hidden sm:inline">&nbsp;& Finish</span>
+                    <Check size={16} className="mr-1 sm:mr-2" />
+                    <span className="font-semibold">Save<span className="hidden sm:inline">&nbsp;& Finish</span></span>
                   </Button>
                 </div>
               )}
               {view === 'home' && (
                 <Button 
                   onClick={() => setView('input')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 text-xs sm:text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 sm:px-4 h-9 text-xs sm:text-sm flex-shrink-0 whitespace-nowrap"
                 >
-                  <Plus className="sm:mr-2 h-4 w-4" /> 
+                  <Plus className="mr-1 sm:mr-2 h-4 w-4" /> 
                   <span className="hidden sm:inline">New Question</span>
                   <span className="sm:hidden">New</span>
                 </Button>

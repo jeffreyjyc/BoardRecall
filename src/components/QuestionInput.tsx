@@ -105,26 +105,53 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="question-text" className="text-sm font-medium text-slate-600">
-              Question & Explanation Text
-            </Label>
-            {isExtension && (
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px] h-5 bg-green-50 text-green-600 border-green-200 gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  Sync Active
+            <div className="flex items-center gap-2">
+              <Label htmlFor="question-text" className="text-sm font-medium text-slate-600">
+                Question & Explanation Text
+              </Label>
+              {text && (
+                <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-500 font-normal">
+                  {text.length} characters
                 </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isExtension && (
+                <>
+                  <Badge variant="outline" className="hidden min-[450px]:flex text-[10px] h-5 bg-green-50 text-green-600 border-green-200 gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Sync
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGrabFromPage}
+                    className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5 px-2 sm:px-3"
+                    title="Extract text from the current page"
+                  >
+                    <MousePointer2 size={14} />
+                    <span className="hidden sm:inline">Grab from Page</span>
+                    <span className="sm:hidden">Grab</span>
+                  </Button>
+                </>
+              )}
+              
+              {(text || images.length > 0) && (
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={handleGrabFromPage}
-                  className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5"
+                  onClick={handleSubmit}
+                  disabled={isGenerating}
+                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 px-3"
                 >
-                  <MousePointer2 size={14} />
-                  Grab from Page
+                  {isGenerating ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Send size={14} />
+                  )}
+                  {isGenerating ? 'Analyzing...' : 'Generate'}
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <Textarea
             id="question-text"
