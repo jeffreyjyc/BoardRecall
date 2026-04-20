@@ -77,7 +77,16 @@ You do **not** need to modify any code files to set up your API key.
 4. **Local (Ollama)**:
    - If you have Ollama running locally, switch to the "Local" tab and configure your endpoint.
 
-**Google is always updating models which can cause previously used models to go offline**
+## ⚠️ Troubleshooting: "Model High Demand" or Quota Errors
+
+If you encounter error messages like **"Model is currently experiencing high demand"** or **"Quota exceeded"** repeatedly:
+
+1. **Try a different model**: Go to **Settings** and switch between Gemini 2.0 Flash and Gemini 1.5 Flash (or any available 3.0 preview models). Often one model is busy while another is free.
+2. **Generate a new API Key**: Sometimes an API key can become throttled. Go back to [Google AI Studio](https://aistudio.google.com/app/apikey), create a **new project**, and generate a fresh API key. Paste the new key into the BoardRecall settings.
+3. **Wait 60 seconds**: If you are using the free tier, there is a limit on requests per minute. Waiting a full minute usually clears the standard quota error.
+
+**Google is always updating models which can cause previously used models to go offline.**
+
 ---
 
 ## 🖥️ Running as a Full Browser Page
