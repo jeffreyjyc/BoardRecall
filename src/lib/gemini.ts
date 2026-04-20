@@ -193,10 +193,6 @@ export async function generateFlashcards(
 ): Promise<Flashcard[]> {
   await settingsLoaded;
   
-  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
-    throw new Error("Gemini API Key is missing. Please add it in Settings.");
-  }
-
   const systemInstruction = `
     You are an expert medical educator specializing in USMLE Step 1 and Step 2 board exams.
     Your task is to convert medical board exam questions and their explanations into high-yield, effective flashcards.
@@ -224,55 +220,33 @@ export async function generateFlashcards(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
-  const model = currentSettings.geminiModel || "gemini-2.0-flash";
-  
-  const parts: any[] = [{ text: userPrompt }];
-  
-  for (const img of images) {
-    const [mime, data] = img.split(";base64,");
-    parts.push({
-      inlineData: {
-        mimeType: mime.split(":")[1],
-        data: data,
-      },
-    });
-  }
-
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: { parts },
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: FLASHCARD_SCHEMA as any,
-        temperature: 0.1,
-        topP: 0.95,
-      },
+    const response = await fetch('/api/generate-flashcards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content,
+        images,
+        instructions: customInstructions,
+        model: currentSettings.geminiModel,
+        // Optional: still send user key if they have one, but server will prioritize its own if available
+        apiKey: currentSettings.geminiApiKey
+      }),
     });
 
-    const result = JSON.parse(response.text || "[]");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Failed to generate flashcards");
+    }
+
+    const result = await response.json();
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Detailed Gemini Error:", error);
-    const errorMessage = error?.message || "Unknown error";
-    if (errorMessage.includes("API_KEY_INVALID")) {
-      throw new Error("Invalid API Key. Please check your Gemini settings.");
-    }
-    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
-    }
-    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
-      if (errorMessage.toLowerCase().includes("rate limit")) {
-        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
-      }
-      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
-    }
-    throw new Error(`AI Error: ${errorMessage}`);
+    console.error("Flashcard generation failed:", error);
+    throw error;
   }
 }
 
@@ -283,10 +257,6 @@ export async function addMoreFlashcards(
 ): Promise<Flashcard[]> {
   await settingsLoaded;
   
-  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
-    throw new Error("Gemini API Key is missing. Please add it in Settings.");
-  }
-
   const systemInstruction = `
     You are an expert medical educator. 
     The user has already generated some flashcards from a medical question.
@@ -308,43 +278,32 @@ export async function addMoreFlashcards(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
-  const model = currentSettings.geminiModel || "gemini-2.0-flash";
-
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: userPrompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: FLASHCARD_SCHEMA as any,
-        temperature: 0.1,
-        topP: 0.95,
-      },
+    const response = await fetch('/api/generate-flashcards', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: originalContent,
+        instructions: customInstructions,
+        existingCards,
+        model: currentSettings.geminiModel,
+        apiKey: currentSettings.geminiApiKey
+      }),
     });
 
-    const result = JSON.parse(response.text || "[]");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Failed to add more cards");
+    }
+
+    const result = await response.json();
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Detailed Gemini Error (Add More):", error);
-    const errorMessage = error?.message || "Unknown error";
-    if (errorMessage.includes("API_KEY_INVALID")) {
-      throw new Error("Invalid API Key. Please check your Gemini settings.");
-    }
-    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
-    }
-    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
-      if (errorMessage.toLowerCase().includes("rate limit")) {
-        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
-      }
-      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
-    }
-    throw new Error(`AI Error: ${errorMessage}`);
+    console.error("Add more cards failed:", error);
+    throw error;
   }
 }
 
@@ -353,10 +312,6 @@ export async function generateBoardQuestions(
 ): Promise<BoardQuestion[]> {
   await settingsLoaded;
   
-  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
-    throw new Error("Gemini API Key is missing. Please add it in Settings.");
-  }
-
   const systemInstruction = `
     You are an expert medical board exam question writer for USMLE Step 1 and Step 2.
     Your task is to generate NEW board-style questions based on the provided medical content.
@@ -385,42 +340,29 @@ export async function generateBoardQuestions(
     }));
   }
 
-  const ai = new GoogleGenAI({ apiKey: currentSettings.geminiApiKey, apiVersion: 'v1beta' });
-  const model = currentSettings.geminiModel || "gemini-2.0-flash";
-
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: userPrompt,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema: BOARD_QUESTION_SCHEMA as any,
-        temperature: 0.1,
-        topP: 0.95,
-      },
+    const response = await fetch('/api/generate-board-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: originalContent,
+        model: currentSettings.geminiModel,
+        apiKey: currentSettings.geminiApiKey
+      }),
     });
 
-    const result = JSON.parse(response.text || "[]");
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error || "Failed to generate board questions");
+    }
+
+    const result = await response.json();
     return result.map((q: any) => ({
       ...q,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Detailed Gemini Error (Board Qs):", error);
-    const errorMessage = error?.message || "Unknown error";
-    if (errorMessage.includes("API_KEY_INVALID")) {
-      throw new Error("Invalid API Key. Please check your Gemini settings.");
-    }
-    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
-      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.0 Flash Preview in settings.`);
-    }
-    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
-      if (errorMessage.toLowerCase().includes("rate limit")) {
-        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
-      }
-      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.0 Flash Preview. (Technical details: ${errorMessage})`);
-    }
-    throw new Error(`AI Error: ${errorMessage}`);
+    console.error("Board question generation failed:", error);
+    throw error;
   }
 }

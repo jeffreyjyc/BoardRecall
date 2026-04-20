@@ -62,29 +62,29 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   onChange={(e) => setSettings(s => ({ ...s, geminiModel: e.target.value }))}
                 >
                   <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
                   <option value="gemini-3-flash-preview">Gemini 3.0 Flash Preview</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="api-key">Gemini API Key</Label>
-                <Input
-                  id="api-key"
-                  type="password"
-                  placeholder="Enter your API key..."
-                  value={settings.geminiApiKey}
-                  onChange={(e) => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
-                />
-                <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                  Get a free key from 
-                  <a 
-                    href="https://aistudio.google.com/app/apikey" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline flex items-center gap-0.5"
-                  >
-                    Google AI Studio <ExternalLink size={10} />
-                  </a>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                  <strong>Standard Mode:</strong> BoardRecall is configured to use a managed AI service. You don't need to provide your own API key.
                 </p>
+              </div>
+              {/* Manual Override (Hidden by default, can be toggled if needed) */}
+              <div className="pt-2 opacity-50 hover:opacity-100 transition-opacity">
+                <details className="text-[10px] cursor-pointer">
+                  <summary className="text-slate-400 font-medium italic">Advanced: Manual API Key Override</summary>
+                  <div className="pt-2 space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="Optional: Use your own key..."
+                      value={settings.geminiApiKey}
+                      onChange={(e) => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </details>
               </div>
             </TabsContent>
 
