@@ -1,5 +1,5 @@
 > [!TIP]
-> The Main Branch on Github is most likely unstable! Check to see the latest branch labelled **current** for the "stable" version. 
+> The Main Branch on Github is most likely unstable! Check to see the latest branch labelled **current** for the "stable" version. The latest stable version will also be found under releases. Download the code and extract. 
 
 # BoardRecall - Smart Medical Exam Companion
 
@@ -24,7 +24,7 @@ Before you begin, make sure you have **Node.js** installed on your computer. Thi
 
 To use BoardRecall as a sidebar or popup in your browser, follow these steps:
 
-### Step 1: Prepare the Code
+### *For developers only, users who downloaded from github can skip to step 2* Step 1: Prepare the Code
 1. Download the source code to your computer.
 2. Open your terminal (Command Prompt, PowerShell, or Terminal). **Make sure to run as admin
 3. Navigate to the project folder:
