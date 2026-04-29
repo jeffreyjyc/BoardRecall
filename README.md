@@ -1,4 +1,5 @@
 > [!TIP]
+> Download the latest release on the right sidebar!
 > The Main Branch on Github is most likely unstable! Check to see the latest branch labelled **current** for the "stable" version. The latest stable version will also be found under releases. Download the code and extract. 
 
 # BoardRecall - Smart Medical Exam Companion
