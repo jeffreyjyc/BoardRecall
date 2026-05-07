@@ -1,5 +1,5 @@
 > [!TIP]
-> The Main Branch on Github is most likely unstable! Check releases on the github page for the latest stable version. Check to see the latest branch labelled **current** for the "stable" version. Download the code and extract. 
+> The Main Branch on Github is most likely unstable! Check releases on the github page for the latest stable version or check to see the latest branch labelled **current** for the "stable" version. Download the code and extract. 
 
 # BoardRecall - Smart Medical Exam Companion
 
