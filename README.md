@@ -1,6 +1,5 @@
 > [!TIP]
-> Download the latest release on the right sidebar!
-> The Main Branch on Github is most likely unstable! Check to see the latest branch labelled **current** for the "stable" version. The latest stable version will also be found under releases. Download the code and extract. 
+> The Main Branch on Github is most likely unstable! Check releases on the github page for the latest stable version. Check to see the latest branch labelled **current** for the "stable" version. Download the code and extract. 
 
 # BoardRecall - Smart Medical Exam Companion
 
@@ -16,9 +15,9 @@ BoardRecall is a powerful tool designed for medical students to convert clinical
 
 ---
 
-## 🛠️ Installation Instructions (Browser Extension)
+## 🛠️ Installation Instructions (Browser Extension) 
 
-### Prerequisites
+### Prerequisites (for developers)
 Before you begin, make sure you have **Node.js** installed on your computer. This is required to build the extension.
 1. Download and install Node.js from: [https://nodejs.org/en/download](https://nodejs.org/en/download)
 2. Follow the installer prompts (the "LTS" version is recommended).

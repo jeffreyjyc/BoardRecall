@@ -104,21 +104,21 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="question-text" className="text-sm font-medium text-slate-600">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Label htmlFor="question-text" className="text-sm font-medium text-slate-600 truncate">
                 Question & Explanation Text
               </Label>
               {text && (
-                <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-500 font-normal">
+                <Badge variant="secondary" className="text-[10px] bg-slate-100 text-slate-500 font-normal shrink-0">
                   {text.length} characters
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap justify-end ml-auto">
               {isExtension && (
                 <>
-                  <Badge variant="outline" className="hidden min-[450px]:flex text-[10px] h-5 bg-green-50 text-green-600 border-green-200 gap-1">
+                  <Badge variant="outline" className="hidden min-[500px]:flex text-[10px] h-5 bg-green-50 text-green-600 border-green-200 gap-1 shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                     Sync
                   </Badge>
@@ -126,12 +126,12 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
                     variant="outline"
                     size="sm"
                     onClick={handleGrabFromPage}
-                    className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5 px-2 sm:px-3"
+                    className="h-8 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 gap-1.5 px-2 shrink-0"
                     title="Extract text from the current page"
                   >
                     <MousePointer2 size={14} />
-                    <span className="hidden sm:inline">Grab from Page</span>
-                    <span className="sm:hidden">Grab</span>
+                    <span className="hidden min-[400px]:inline">Grab from Page</span>
+                    <span className="min-[400px]:hidden">Grab</span>
                   </Button>
                 </>
               )}
@@ -141,7 +141,7 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
                   size="sm"
                   onClick={handleSubmit}
                   disabled={isGenerating}
-                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 px-3"
+                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700 text-white gap-1.5 px-3 shrink-0 shadow-sm"
                 >
                   {isGenerating ? (
                     <Loader2 size={14} className="animate-spin" />
@@ -181,7 +181,7 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
                   />
                   <button
                     onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-60 hover:opacity-100 transition-opacity shadow-sm"
                   >
                     <X size={12} />
                   </button>

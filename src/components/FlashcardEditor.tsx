@@ -227,7 +227,7 @@ export function FlashcardEditor({ cards, onUpdate, onAddMore, isAddingMore }: Fl
                             </Badge>
                           ))}
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex gap-1 opacity-40 hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600" onClick={() => startEditing(card)}>
                             <Edit2 size={16} />
                           </Button>

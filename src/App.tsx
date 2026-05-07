@@ -330,7 +330,7 @@ export default function App() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-6 w-6 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-6 w-6 text-slate-300 hover:text-red-500 opacity-40 hover:opacity-100 transition-opacity"
                             onClick={() => deleteSet(set.id)}
                           >
                             <Plus className="rotate-45" size={14} />
