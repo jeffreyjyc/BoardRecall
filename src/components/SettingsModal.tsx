@@ -54,6 +54,19 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
             <TabsContent value="gemini" className="space-y-4 pt-4">
               <div className="space-y-2">
+                <Label htmlFor="proxy-url">Remote Proxy URL (for Chrome Extension)</Label>
+                <Input
+                  id="proxy-url"
+                  placeholder="https://your-backend-server.com"
+                  value={settings.proxyUrl || ''}
+                  onChange={(e) => setSettings(s => ({ ...s, proxyUrl: e.target.value }))}
+                />
+                <p className="text-[10px] text-slate-500">
+                  Leave empty if using the built-in web preview. For extensions, enter the full URL (e.g. https://ais-pre-....run.app)
+                </p>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="gemini-model">Gemini Model</Label>
                 <select 
                   id="gemini-model"
@@ -70,20 +83,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Input
                   id="api-key"
                   type="password"
-                  placeholder="Enter your API key..."
+                  placeholder="Optional: Enter your own API key..."
                   value={settings.geminiApiKey}
                   onChange={(e) => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
                 />
-                <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                  Get a free key from 
-                  <a 
-                    href="https://aistudio.google.com/app/apikey" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="text-blue-600 hover:underline flex items-center gap-0.5"
-                  >
-                    Google AI Studio <ExternalLink size={10} />
-                  </a>
+                <p className="text-[10px] text-slate-500 flex flex-col gap-1">
+                  <span>A default API key is provided by the server. Enter your own key to override it.</span>
+                  <span className="flex items-center gap-1">
+                    Get an individual key from 
+                    <a 
+                      href="https://aistudio.google.com/app/apikey" 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-0.5"
+                    >
+                      Google AI Studio <ExternalLink size={10} />
+                    </a>
+                  </span>
                 </p>
               </div>
             </TabsContent>

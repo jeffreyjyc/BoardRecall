@@ -38,6 +38,7 @@ export interface AppSettings {
   provider: 'gemini' | 'local';
   geminiApiKey: string;
   geminiModel: string;
+  proxyUrl?: string;
   localEndpoint: string;
   localModel: string;
 }
