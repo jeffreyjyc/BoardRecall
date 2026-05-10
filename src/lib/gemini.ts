@@ -197,29 +197,40 @@ async function callGeminiProxy(
   const baseUrl = currentSettings.proxyUrl || '';
   const url = `${baseUrl}/api/gemini`.replace(/\/+/g, '/').replace('http:/', 'http://').replace('https:/', 'https://');
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      type,
-      payload: { prompt, images },
-      customSettings: {
-        geminiApiKey: currentSettings.geminiApiKey,
-        geminiModel: currentSettings.geminiModel,
+  console.log(`[GeminiProxy] Calling URL: ${url}`);
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      systemInstruction,
-      responseSchema: schema
-    }),
-  });
+      body: JSON.stringify({
+        type,
+        payload: { prompt, images },
+        customSettings: {
+          geminiApiKey: currentSettings.geminiApiKey,
+          geminiModel: currentSettings.geminiModel,
+        },
+        systemInstruction,
+        responseSchema: schema
+      }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Server error: ${response.statusText}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error(`[GeminiProxy] Server responded with error ${response.status}`, errorData);
+      throw new Error(errorData.error || `Server error: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (err: any) {
+    console.error(`[GeminiProxy] Fetch error for ${url}:`, err);
+    if (err.message === 'Failed to fetch') {
+      throw new Error("Failed to connect to the proxy server. Please check the Proxy URL in Settings and ensure the server is online. This can also be caused by missing permissions in the extension.");
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 export async function generateFlashcards(
