@@ -194,32 +194,55 @@ async function callGeminiProxy(
   schema: any,
   images: string[] = []
 ): Promise<any> {
-  const baseUrl = currentSettings.proxyUrl || '';
-  const url = `${baseUrl}/api/gemini`.replace(/\/+/g, '/').replace('http:/', 'http://').replace('https:/', 'https://');
+  const proxyUrl = currentSettings.proxyUrl?.trim() || '';
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      type,
-      payload: { prompt, images },
-      customSettings: {
-        geminiApiKey: currentSettings.geminiApiKey,
-        geminiModel: currentSettings.geminiModel,
-      },
-      systemInstruction,
-      responseSchema: schema
-    }),
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Server error: ${response.statusText}`);
+  // Construct the full URL
+  let url = '';
+  if (!proxyUrl) {
+    // If no proxy, use relative path (works in web preview)
+    url = '/api/gemini';
+  } else {
+    // Ensure the proxy URL has a protocol
+    let validatedProxy = proxyUrl;
+    if (!validatedProxy.startsWith('http://') && !validatedProxy.startsWith('https://')) {
+      validatedProxy = `https://${validatedProxy}`;
+    }
+    
+    // Remove trailing slash and append API path
+    url = `${validatedProxy.replace(/\/+$/, '')}/api/gemini`;
   }
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        type,
+        payload: { prompt, images },
+        customSettings: {
+          geminiApiKey: currentSettings.geminiApiKey,
+          geminiModel: currentSettings.geminiModel,
+        },
+        systemInstruction,
+        responseSchema: schema
+      }),
+    });
 
-  return response.json();
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Server error: ${response.statusText} (${response.status})`);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    console.error(`Fetch failed for URL: ${url}`, error);
+    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
+      throw new Error(`Connection failed to ${url}. If using an extension, check your Proxy URL and Manifest permissions.`);
+    }
+    throw error;
+  }
 }
 
 export async function generateFlashcards(
