@@ -16,55 +16,31 @@ async function startServer() {
   const PORT = 3000;
 
   // Enable CORS for Chrome Extension support
-  app.use(cors({
-    origin: (origin, callback) => {
-      // Allow all origins, including chrome-extension://
-      callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
-  }));
-  
-  // Handle preflight requests
-  app.options('*', cors() as any);
-  
+  app.use(cors());
   app.use(express.json({ limit: '10mb' }));
 
   // We check multiple common names for the Gemini API key
-  // prioritize GEMINI_API_KEY as it's the standard for this environment
-  const envKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.API_KEY || "";
+  const envKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "";
   const DEFAULT_GEMINI_API_KEY = envKey.trim().replace(/^["']|["']$/g, '');
   
-  console.log("--- Server Environment Check ---");
-  console.log(`Node ENV: ${process.env.NODE_ENV}`);
   if (!DEFAULT_GEMINI_API_KEY) {
-    console.warn("WARNING: No GEMINI_API_KEY found in process.env");
-    console.info("Action Required: Go to AI Studio Settings -> Environment Variables and add GEMINI_API_KEY.");
+    console.warn("--- SERVER WARNING ---");
+    console.warn("No default GEMINI_API_KEY found in .env or environment.");
+    console.warn("Available environment keys:", Object.keys(process.env).filter(k => k.includes("API") || k.includes("KEY")));
+    console.warn("-----------------------");
   } else {
-    console.log(`Gemini API Key loaded from process.env. Length: ${DEFAULT_GEMINI_API_KEY.length}, Prefix: ${DEFAULT_GEMINI_API_KEY.substring(0, 4)}...`);
+    console.log(`[Server] Default Gemini API Key loaded (Length: ${DEFAULT_GEMINI_API_KEY.length}, Prefix: ${DEFAULT_GEMINI_API_KEY.substring(0, 4)}...)`);
   }
-  console.log("-------------------------------");
 
   // Health check for diagnostic purposes
   app.get("/api/health", (req, res) => {
-    // List ALL keys present in process.env (values hidden)
-    const allEnvKeys = Object.keys(process.env).sort();
-    
-    // Check if .env file exists and was loaded
-    const dotEnvCheck = !!process.env.GEMINI_API_KEY || !!process.env.VITE_GEMINI_API_KEY;
-
     res.json({ 
       status: "ok", 
       envKeyPresent: !!DEFAULT_GEMINI_API_KEY,
       envKeyLength: DEFAULT_GEMINI_API_KEY ? DEFAULT_GEMINI_API_KEY.length : 0,
       envKeyPrefix: DEFAULT_GEMINI_API_KEY ? DEFAULT_GEMINI_API_KEY.substring(0, 4) : null,
-      dotEnvLoaded: dotEnvCheck,
-      availableEnvVars: allEnvKeys,
       serverTime: new Date().toISOString(),
-      nodeEnv: process.env.NODE_ENV,
-      message: DEFAULT_GEMINI_API_KEY ? "Server is configured with an API key." : "Server is missing an API key. Check AI Studio Settings or .env file.",
-      corsOrigin: req.headers.origin || "none"
+      nodeEnv: process.env.NODE_ENV
     });
   });
 

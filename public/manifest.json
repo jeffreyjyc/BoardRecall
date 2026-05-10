@@ -11,14 +11,13 @@
     }
   },
   "host_permissions": [
-    "<all_urls>",
     "https://generativelanguage.googleapis.com/*",
     "*://*.uworld.com/*",
     "*://*.truelearn.com/*",
     "*://*.truelearn.net/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://* http://localhost:* http://127.0.0.1:*"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://*.googleapis.com http://localhost:*"
   },
   "side_panel": {
     "default_path": "index.html"
