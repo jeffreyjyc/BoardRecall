@@ -7,7 +7,6 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
-dotenv.config({ path: 'env.local' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,10 +39,10 @@ async function startServer() {
   console.log("--- Server Environment Check ---");
   console.log(`Node ENV: ${process.env.NODE_ENV}`);
   if (!DEFAULT_GEMINI_API_KEY) {
-    console.warn("WARNING: No default GEMINI_API_KEY found in process.env or .env");
-    console.log("Available related keys:", Object.keys(process.env).filter(k => k.includes("API") || k.includes("KEY") || k.includes("GEMINI")));
+    console.warn("WARNING: No GEMINI_API_KEY found in process.env");
+    console.info("Action Required: Go to AI Studio Settings -> Environment Variables and add GEMINI_API_KEY.");
   } else {
-    console.log(`Gemini API Key loaded successfully. Length: ${DEFAULT_GEMINI_API_KEY.length}, Prefix: ${DEFAULT_GEMINI_API_KEY.substring(0, 4)}...`);
+    console.log(`Gemini API Key loaded from process.env. Length: ${DEFAULT_GEMINI_API_KEY.length}, Prefix: ${DEFAULT_GEMINI_API_KEY.substring(0, 4)}...`);
   }
   console.log("-------------------------------");
 
