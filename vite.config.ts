@@ -22,9 +22,9 @@ export default defineConfig(({mode}) => {
     build: {
       rollupOptions: {
         input: {
-          main: path.resolve(__dirname, 'index.html'),
-          content: path.resolve(__dirname, 'src/content.ts'),
-          background: path.resolve(__dirname, 'src/background.ts'),
+          main: 'index.html',
+          content: 'src/content.ts',
+          background: 'src/background.ts',
         },
         output: {
           entryFileNames: (chunkInfo) => {
