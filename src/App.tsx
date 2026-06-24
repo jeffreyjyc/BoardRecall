@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { generateFlashcards, addMoreFlashcards, generateBoardQuestions, loadSettings } from './lib/gemini';
 import { Toaster, toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText, Check, Save, Download } from 'lucide-react';
+import { BookOpen, History, Plus, BrainCircuit, Stethoscope, GraduationCap, Loader2, Settings as SettingsIcon, ExternalLink, Maximize2, FileText, Check, Save, Download, Search, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BoardQuestionViewer } from './components/BoardQuestionViewer';
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
 import { SettingsModal } from './components/SettingsModal';
+import { Input } from '@/components/ui/input';
 
 type View = 'home' | 'input' | 'edit' | 'study' | 'history';
 
@@ -27,6 +28,9 @@ export default function App() {
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const [activeTab, setActiveTab] = useState('flashcards');
   const [showSettings, setShowSettings] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
+  const [studyOnCloseView, setStudyOnCloseView] = useState<View>('home');
 
   const openInNewTab = () => {
     if (typeof chrome !== 'undefined' && chrome.tabs) {
@@ -155,6 +159,56 @@ export default function App() {
     URL.revokeObjectURL(url);
     
     toast.success(`Exported ${allCards.length} cards from ${history.length} sets`);
+  };
+
+  const filteredHistory = history.filter(set => {
+    // 1. Filter by Date
+    if (dateFilter !== 'all') {
+      const setDate = new Date(set.createdAt);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      if (dateFilter === 'today') {
+        if (setDate.getTime() < today.getTime()) return false;
+      } else if (dateFilter === 'week') {
+        const oneWeekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (setDate.getTime() < oneWeekAgo.getTime()) return false;
+      } else if (dateFilter === 'month') {
+        const oneMonthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        if (setDate.getTime() < oneMonthAgo.getTime()) return false;
+      }
+    }
+
+    // 2. Filter by Search Query
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = set.title.toLowerCase().includes(query);
+      const matchesCards = set.cards.some(card => 
+        card.front.toLowerCase().includes(query) || 
+        card.back.toLowerCase().includes(query)
+      );
+      return matchesTitle || matchesCards;
+    }
+
+    return true;
+  });
+
+  const studyAllFlashcards = () => {
+    const allCards = history.flatMap(set => set.cards);
+    if (allCards.length === 0) {
+      toast.error("No flashcards found to study!");
+      return;
+    }
+    const virtualSet: QuestionSet = {
+      id: 'all',
+      title: 'All Saved Flashcards',
+      originalText: '',
+      cards: allCards,
+      createdAt: Date.now()
+    };
+    setCurrentSet(virtualSet);
+    setView('study');
+    setStudyOnCloseView('history');
   };
 
   return (
@@ -288,13 +342,13 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       onClick={() => setView('home')}
-                      className="text-slate-400 hover:text-slate-600"
+                      className="text-slate-400 hover:text-slate-600 shrink-0"
                     >
                       <Plus className="rotate-45" />
                     </Button>
@@ -303,24 +357,72 @@ export default function App() {
                       Study History
                     </h2>
                   </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <Button
+                      onClick={studyAllFlashcards}
+                      className="bg-blue-600 hover:bg-blue-700 text-white gap-2 h-9 shadow-sm"
+                      size="sm"
+                      disabled={history.length === 0}
+                    >
+                      <BrainCircuit size={16} />
+                      Study All Cards
+                    </Button>
                     <Button
                       onClick={exportAllHistory}
                       variant="outline"
                       size="sm"
-                      className="text-green-600 border-green-200 hover:bg-green-50 gap-2 h-9 flex-1 sm:flex-none"
+                      className="text-green-600 border-green-200 hover:bg-green-50 gap-2 h-9"
                     >
                       <Download size={16} />
                       Export All cards
                     </Button>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 h-9 px-3 shrink-0">
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 h-9 px-3 shrink-0 flex items-center justify-center">
                       {history.length} Sets Total
                     </Badge>
                   </div>
                 </div>
 
+                {/* Search and Filters Section */}
+                {history.length > 0 && (
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search set title, flashcard text, explanations..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 bg-slate-50 border-slate-200 focus-visible:bg-white focus-visible:ring-blue-500 h-10 text-sm"
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-semibold"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                        <Calendar size={14} />
+                        Filter:
+                      </span>
+                      <select
+                        value={dateFilter}
+                        onChange={(e) => setDateFilter(e.target.value as any)}
+                        className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 h-10 w-full sm:w-[150px] font-medium"
+                      >
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">Past 7 Days</option>
+                        <option value="month">Past 30 Days</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {history.map((set) => (
+                  {filteredHistory.map((set) => (
                     <Card key={set.id} className="group hover:shadow-md transition-all border-slate-200">
                       <CardContent className="p-5">
                         <div className="flex justify-between items-start mb-3">
@@ -371,6 +473,7 @@ export default function App() {
                               onClick={() => {
                                 setCurrentSet(set);
                                 setView('study');
+                                setStudyOnCloseView('history');
                               }}
                             >
                               Study
@@ -382,11 +485,23 @@ export default function App() {
                   ))}
                 </div>
                 
-                {history.length === 0 && (
+                {history.length === 0 ? (
                   <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-200">
                     <p className="text-slate-400">No questions in your history yet.</p>
                   </div>
-                )}
+                ) : filteredHistory.length === 0 ? (
+                  <div className="text-center py-20 bg-white rounded-xl border border-dashed border-slate-200 flex flex-col items-center justify-center space-y-3">
+                    <p className="text-slate-400 font-medium">No history items match your search or date filter.</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => { setSearchQuery(''); setDateFilter('all'); }}
+                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                    >
+                      Clear all filters
+                    </Button>
+                  </div>
+                ) : null}
               </motion.div>
             )}
 
@@ -518,7 +633,7 @@ export default function App() {
         {view === 'study' && currentSet && (
           <FlashcardViewer 
             cards={currentSet.cards} 
-            onClose={() => setView('home')} 
+            onClose={() => setView(studyOnCloseView)} 
           />
         )}
 

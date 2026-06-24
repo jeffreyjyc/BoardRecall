@@ -1,6 +1,6 @@
 {
   "name": "BoardRecall",
-  "description": "[v0.6.0] Smart medical flashcard and question generator for board exams (USMLE Step 1 & 2). Transform vignettes and explanations into high-yield study material.",
+  "description": "Smart medical flashcard and question generator for board exams (USMLE Step 1 & 2). Transform vignettes and explanations into high-yield study material.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

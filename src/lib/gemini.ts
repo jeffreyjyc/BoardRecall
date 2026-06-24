@@ -1,13 +1,12 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { Flashcard, BoardQuestion, AppSettings } from "../types";
 import { v4 as uuidv4 } from 'uuid';
 
 // Default settings
 let currentSettings: AppSettings = {
   provider: 'gemini',
-  geminiApiKey: "",
-  geminiModel: "gemini-2.0-flash",
-  proxyUrl: "",
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: "gemini-3.5-flash",
   localEndpoint: "http://localhost:11434/v1", // Default Ollama OpenAI-compatible endpoint
   localModel: "llama3",
 };
@@ -16,8 +15,13 @@ let currentSettings: AppSettings = {
 export async function loadSettings(): Promise<AppSettings> {
   const validateAndMigrate = (settings: AppSettings): AppSettings => {
     // Migrate away from deprecated models
-    if (settings.geminiModel === "gemini-1.5-flash" || settings.geminiModel === "gemini-1.5-pro") {
-      settings.geminiModel = "gemini-2.0-flash";
+    if (
+      settings.geminiModel === "gemini-1.5-flash" ||
+      settings.geminiModel === "gemini-1.5-pro" ||
+      settings.geminiModel === "gemini-2.0-flash" ||
+      settings.geminiModel === "gemini-3-flash-preview"
+    ) {
+      settings.geminiModel = "gemini-3.5-flash";
     }
     // Migrate away from deprecated providers
     if (settings.provider as string === 'openai') {
@@ -187,59 +191,54 @@ async function callLocalLLM(systemPrompt: string, userPrompt: string, schema: an
   }
 }
 
-async function callGeminiProxy(
-  type: 'flashcards' | 'board_questions',
-  prompt: string,
-  systemInstruction: string,
-  schema: any,
-  images: string[] = []
-): Promise<any> {
-  const proxyUrl = currentSettings.proxyUrl?.trim() || '';
-  
-  // Construct the full URL
-  let url = '';
-  if (!proxyUrl) {
-    // If no proxy, use relative path (works in web preview)
-    url = '/api/gemini';
-  } else {
-    // Ensure the proxy URL has a protocol
-    let validatedProxy = proxyUrl;
-    if (!validatedProxy.startsWith('http://') && !validatedProxy.startsWith('https://')) {
-      validatedProxy = `https://${validatedProxy}`;
-    }
-    
-    // Remove trailing slash and append API path
-    url = `${validatedProxy.replace(/\/+$/, '')}/api/gemini`;
+async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  initialModel: string,
+  params: {
+    contents: any;
+    config: any;
   }
-  
+): Promise<any> {
+  let model = initialModel;
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        type,
-        payload: { prompt, images },
-        customSettings: {
-          geminiApiKey: currentSettings.geminiApiKey,
-          geminiModel: currentSettings.geminiModel,
-        },
-        systemInstruction,
-        responseSchema: schema
-      }),
+    return await ai.models.generateContent({
+      model,
+      contents: params.contents,
+      config: params.config,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Server error: ${response.statusText} (${response.status})`);
-    }
-
-    return response.json();
   } catch (error: any) {
-    console.error(`Fetch failed for URL: ${url}`, error);
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw new Error(`Connection failed to ${url}. If using an extension, check your Proxy URL and Manifest permissions.`);
+    console.warn(`[Gemini Fallback System] Failed with model ${model}:`, error);
+    const errorMessage = error?.message || "";
+    const errorString = typeof error === 'object' ? JSON.stringify(error) : String(error);
+    
+    const isHighDemandOrUnavailable = 
+      error?.status === "UNAVAILABLE" ||
+      error?.code === 503 ||
+      errorMessage.includes("503") ||
+      errorString.includes("503") ||
+      errorMessage.toLowerCase().includes("experiencing high demand") ||
+      errorString.toLowerCase().includes("experiencing high demand") ||
+      errorMessage.toLowerCase().includes("busy") ||
+      errorMessage.toLowerCase().includes("unavailable");
+
+    if (isHighDemandOrUnavailable && model !== "gemini-3.1-flash-lite") {
+      console.warn(`[Gemini Fallback System] Model ${model} is experiencing high demand. Automatically falling back to gemini-3.1-flash-lite...`);
+      
+      const fallbackConfig = { ...params.config };
+      if (fallbackConfig.thinkingConfig) {
+        delete fallbackConfig.thinkingConfig;
+      }
+
+      try {
+        return await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite",
+          contents: params.contents,
+          config: fallbackConfig,
+        });
+      } catch (fallbackError: any) {
+        console.error("[Gemini Fallback System] Fallback to gemini-3.1-flash-lite failed:", fallbackError);
+        throw fallbackError;
+      }
     }
     throw error;
   }
@@ -252,6 +251,10 @@ export async function generateFlashcards(
 ): Promise<Flashcard[]> {
   await settingsLoaded;
   
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical educator specializing in USMLE Step 1 and Step 2 board exams.
     Your task is to convert medical board exam questions and their explanations into high-yield, effective flashcards.
@@ -279,15 +282,67 @@ export async function generateFlashcards(
     }));
   }
 
+  const ai = new GoogleGenAI({
+    apiKey: currentSettings.geminiApiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+  const model = currentSettings.geminiModel || "gemini-3.5-flash";
+  
+  const parts: any[] = [{ text: userPrompt }];
+  
+  for (const img of images) {
+    const [mime, data] = img.split(";base64,");
+    parts.push({
+      inlineData: {
+        mimeType: mime.split(":")[1],
+        data: data,
+      },
+    });
+  }
+
   try {
-    const result = await callGeminiProxy('flashcards', userPrompt, systemInstruction, FLASHCARD_SCHEMA, images);
+    const config: any = {
+      systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: FLASHCARD_SCHEMA as any,
+      temperature: 0.1,
+      topP: 0.95,
+    };
+
+    if (model.startsWith("gemini-3") && model !== "gemini-3.1-flash-lite") {
+      config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    }
+
+    const response = await generateContentWithFallback(ai, model, {
+      contents: { parts },
+      config,
+    });
+
+    const result = JSON.parse(response.text || "[]");
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Flashcard generation error:", error);
-    throw new Error(`AI Error: ${error.message || "Unknown error"}`);
+    console.error("Detailed Gemini Error:", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.5 Flash in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.5 Flash. (Technical details: ${errorMessage})`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
 
@@ -298,6 +353,10 @@ export async function addMoreFlashcards(
 ): Promise<Flashcard[]> {
   await settingsLoaded;
   
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical educator. 
     The user has already generated some flashcards from a medical question.
@@ -319,15 +378,55 @@ export async function addMoreFlashcards(
     }));
   }
 
+  const ai = new GoogleGenAI({
+    apiKey: currentSettings.geminiApiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+  const model = currentSettings.geminiModel || "gemini-3.5-flash";
+
   try {
-    const result = await callGeminiProxy('flashcards', userPrompt, systemInstruction, FLASHCARD_SCHEMA);
+    const config: any = {
+      systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: FLASHCARD_SCHEMA as any,
+      temperature: 0.1,
+      topP: 0.95,
+    };
+
+    if (model.startsWith("gemini-3") && model !== "gemini-3.1-flash-lite") {
+      config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    }
+
+    const response = await generateContentWithFallback(ai, model, {
+      contents: userPrompt,
+      config,
+    });
+
+    const result = JSON.parse(response.text || "[]");
     return result.map((card: any) => ({
       ...card,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Add more flashcards error:", error);
-    throw new Error(`AI Error: ${error.message || "Unknown error"}`);
+    console.error("Detailed Gemini Error (Add More):", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.5 Flash in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.5 Flash. (Technical details: ${errorMessage})`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }
 
@@ -336,6 +435,10 @@ export async function generateBoardQuestions(
 ): Promise<BoardQuestion[]> {
   await settingsLoaded;
   
+  if (!currentSettings.geminiApiKey && currentSettings.provider === 'gemini') {
+    throw new Error("Gemini API Key is missing. Please add it in Settings.");
+  }
+
   const systemInstruction = `
     You are an expert medical board exam question writer for USMLE Step 1 and Step 2.
     Your task is to generate NEW board-style questions based on the provided medical content.
@@ -364,14 +467,54 @@ export async function generateBoardQuestions(
     }));
   }
 
+  const ai = new GoogleGenAI({
+    apiKey: currentSettings.geminiApiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+  const model = currentSettings.geminiModel || "gemini-3.5-flash";
+
   try {
-    const result = await callGeminiProxy('board_questions', userPrompt, systemInstruction, BOARD_QUESTION_SCHEMA);
+    const config: any = {
+      systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: BOARD_QUESTION_SCHEMA as any,
+      temperature: 0.1,
+      topP: 0.95,
+    };
+
+    if (model.startsWith("gemini-3") && model !== "gemini-3.1-flash-lite") {
+      config.thinkingConfig = { thinkingLevel: ThinkingLevel.LOW };
+    }
+
+    const response = await generateContentWithFallback(ai, model, {
+      contents: userPrompt,
+      config,
+    });
+
+    const result = JSON.parse(response.text || "[]");
     return result.map((q: any) => ({
       ...q,
       id: uuidv4(),
     }));
   } catch (error: any) {
-    console.error("Board question generation error:", error);
-    throw new Error(`AI Error: ${error.message || "Unknown error"}`);
+    console.error("Detailed Gemini Error (Board Qs):", error);
+    const errorMessage = error?.message || "Unknown error";
+    if (errorMessage.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please check your Gemini settings.");
+    }
+    if (errorMessage.includes("model not found") || errorMessage.includes("404")) {
+      throw new Error(`Model "${model}" is not available for your API key. Try switching to Gemini 3.5 Flash in settings.`);
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      if (errorMessage.toLowerCase().includes("rate limit")) {
+        throw new Error("Rate limit reached. Please wait a few seconds and try again.");
+      }
+      throw new Error(`Gemini Quota Error: This model might not be enabled for your API key yet, or you've reached your daily limit. Try switching to Gemini 3.5 Flash. (Technical details: ${errorMessage})`);
+    }
+    throw new Error(`AI Error: ${errorMessage}`);
   }
 }

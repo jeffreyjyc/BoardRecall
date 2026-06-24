@@ -85,6 +85,29 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
     });
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    let hasImage = false;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          hasImage = true;
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImages(prev => [...prev, reader.result as string]);
+            toast.success("Image pasted from clipboard!");
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+    // Prevent default textarea handling only if an image was pasted to avoid blank lines/placeholders
+    if (hasImage) {
+      e.preventDefault();
+    }
+  };
+
   const removeImage = (index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
@@ -95,11 +118,14 @@ export function QuestionInput({ onGenerate, isGenerating }: QuestionInputProps) 
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto border-slate-200 shadow-sm">
+    <Card 
+      className="w-full max-w-3xl mx-auto border-slate-200 shadow-sm"
+      onPaste={handlePaste}
+    >
       <CardHeader className="pb-4">
         <CardTitle className="text-2xl font-semibold text-slate-800">New Question</CardTitle>
         <CardDescription>
-          Paste text or upload images from UWorld, TrueLearn, or other sources.
+          Paste text, paste images directly (Ctrl+V / Cmd+V), or upload files from UWorld, TrueLearn, or other sources.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

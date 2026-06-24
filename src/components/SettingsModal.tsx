@@ -54,19 +54,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
             <TabsContent value="gemini" className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="proxy-url">Remote Proxy URL (for Chrome Extension)</Label>
-                <Input
-                  id="proxy-url"
-                  placeholder="https://your-backend-server.com"
-                  value={settings.proxyUrl || ''}
-                  onChange={(e) => setSettings(s => ({ ...s, proxyUrl: e.target.value }))}
-                />
-                <p className="text-[10px] text-slate-500">
-                  Leave empty if using the built-in web preview. For extensions, enter the full URL (e.g. https://ais-pre-....run.app)
-                </p>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="gemini-model">Gemini Model</Label>
                 <select 
                   id="gemini-model"
@@ -74,8 +61,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   value={settings.geminiModel}
                   onChange={(e) => setSettings(s => ({ ...s, geminiModel: e.target.value }))}
                 >
-                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                  <option value="gemini-3-flash-preview">Gemini 3.0 Flash Preview</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash (Recommended - Balanced)</option>
+                  <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Ultra Fast)</option>
+                  <option value="gemini-flash-latest">Gemini Flash (Latest Stable)</option>
+                  <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (High Quality)</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -83,23 +72,20 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 <Input
                   id="api-key"
                   type="password"
-                  placeholder="Optional: Enter your own API key..."
+                  placeholder="Enter your API key..."
                   value={settings.geminiApiKey}
                   onChange={(e) => setSettings(s => ({ ...s, geminiApiKey: e.target.value }))}
                 />
-                <p className="text-[10px] text-slate-500 flex flex-col gap-1">
-                  <span>A default API key is provided by the server. Enter your own key to override it.</span>
-                  <span className="flex items-center gap-1">
-                    Get an individual key from 
-                    <a 
-                      href="https://aistudio.google.com/app/apikey" 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="text-blue-600 hover:underline flex items-center gap-0.5"
-                    >
-                      Google AI Studio <ExternalLink size={10} />
-                    </a>
-                  </span>
+                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                  Get a free key from 
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline flex items-center gap-0.5"
+                  >
+                    Google AI Studio <ExternalLink size={10} />
+                  </a>
                 </p>
               </div>
             </TabsContent>
