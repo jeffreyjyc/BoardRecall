@@ -24,22 +24,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-slate-200">
-        <CardHeader className="pb-4">
+      <Card className="w-full max-w-md shadow-2xl border-slate-200 bg-white">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-slate-600" />
-              <CardTitle className="text-xl">AI Settings</CardTitle>
+              <CardTitle className="text-xl">Settings</CardTitle>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600">
               &times;
             </Button>
           </div>
           <CardDescription>
-            Configure how your flashcards are generated.
+            Configure AI generators and preferences.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+
+        <CardContent className="space-y-6 pt-4">
           <Tabs value={settings.provider} onValueChange={(v) => setSettings(s => ({ ...s, provider: v as any }))}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="gemini" className="flex items-center gap-2">
@@ -121,7 +122,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             <Button variant="outline" className="flex-1" onClick={onClose}>
               Cancel
             </Button>
-            <Button className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={handleSave}>
+            <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSave}>
               <Save className="w-4 h-4 mr-2" />
               Save Settings
             </Button>
