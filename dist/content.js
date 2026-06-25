@@ -1,0 +1,1 @@
+chrome.runtime.onMessage.addListener((o,c,t)=>{var e;if(o.action==="extractContent"){const n=(e=window.getSelection())==null?void 0:e.toString();if(n)return t({content:n}),!0;const r=document.body.innerText||"";t({content:r.slice(0,1e4)})}return!0});
