@@ -292,7 +292,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="max-w-6xl mx-auto p-6">
+        <main className="max-w-6xl mx-auto p-3 sm:p-6">
           <AnimatePresence mode="wait">
             {view === 'home' && (
               <motion.div
@@ -534,28 +534,30 @@ export default function App() {
               >
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between mb-6 gap-4">
-                    <TabsList className="bg-slate-100 p-1 w-full sm:w-auto">
-                      <TabsTrigger value="flashcards" className="flex-1 sm:px-6">
-                        <BookOpen className="sm:mr-2 h-4 w-4" />
-                        <span className="hidden min-[400px]:inline">Flashcards</span>
-                        <span className="min-[400px]:hidden">Cards</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="practice" className="flex-1 sm:px-6">
-                        <GraduationCap className="sm:mr-2 h-4 w-4" />
-                        <span className="hidden min-[400px]:inline">Practice Questions</span>
-                        <span className="min-[400px]:hidden">Practice</span>
-                        {currentSet.relatedQuestions && currentSet.relatedQuestions.length > 0 && (
-                          <Badge className="ml-2 bg-blue-600 text-[10px] h-4 px-1 min-w-[16px] flex items-center justify-center">
-                            {currentSet.relatedQuestions.length}
-                          </Badge>
-                        )}
-                      </TabsTrigger>
-                      <TabsTrigger value="source" className="flex-1 sm:px-6">
-                        <FileText className="sm:mr-2 h-4 w-4" />
-                        <span className="hidden min-[400px]:inline">Source Stem</span>
-                        <span className="min-[400px]:hidden">Source</span>
-                      </TabsTrigger>
-                    </TabsList>
+                    <div className="w-full overflow-x-auto scrollbar-none pb-1 flex">
+                      <TabsList className="bg-slate-100 p-1 flex w-max sm:w-auto min-w-full">
+                        <TabsTrigger value="flashcards" className="flex-1 sm:px-6">
+                          <BookOpen className="sm:mr-2 h-4 w-4" />
+                          <span className="hidden min-[400px]:inline">Flashcards</span>
+                          <span className="min-[400px]:hidden">Cards</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="practice" className="flex-1 sm:px-6">
+                          <GraduationCap className="sm:mr-2 h-4 w-4" />
+                          <span className="hidden min-[400px]:inline">Practice Questions</span>
+                          <span className="min-[400px]:hidden">Practice</span>
+                          {currentSet.relatedQuestions && currentSet.relatedQuestions.length > 0 && (
+                            <Badge className="ml-2 bg-blue-600 text-[10px] h-4 px-1 min-w-[16px] flex items-center justify-center">
+                              {currentSet.relatedQuestions.length}
+                            </Badge>
+                          )}
+                        </TabsTrigger>
+                        <TabsTrigger value="source" className="flex-1 sm:px-6">
+                          <FileText className="sm:mr-2 h-4 w-4" />
+                          <span className="hidden min-[400px]:inline">Source Stem</span>
+                          <span className="min-[400px]:hidden">Source</span>
+                        </TabsTrigger>
+                      </TabsList>
+                    </div>
 
                     {activeTab === 'practice' && (
                       <Button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Flashcard } from '../types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,14 +16,18 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [results, setResults] = useState<{ [id: string]: 'good' | 'review' }>({});
+  const [revealedClozes, setRevealedClozes] = useState<Set<number>>(new Set());
 
   const currentCard = cards[currentIndex];
+
+  useEffect(() => {
+    setRevealedClozes(new Set());
+    setIsFlipped(false);
+  }, [currentIndex]);
 
   const handleNext = () => {
     if (currentIndex < cards.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setIsFlipped(false);
     } else {
       setShowResults(true);
     }
@@ -32,43 +36,76 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setIsFlipped(false);
     }
   };
 
+  const getClozeCount = (text: string) => {
+    const regex = /\{\{c\d+::([^:}]+)(?:::([^}]+))?\}\}/g;
+    let count = 0;
+    while (regex.exec(text) !== null) {
+      count++;
+    }
+    return count;
+  };
+
+  const handleRevealCloze = (idx: number) => {
+    setRevealedClozes(prev => {
+      const next = new Set(prev);
+      next.add(idx);
+      return next;
+    });
+  };
+
   const handleFlip = () => {
-    setIsFlipped(!isFlipped);
+    if (isFlipped) {
+      setIsFlipped(false);
+    } else {
+      const totalClozes = getClozeCount(currentCard.front);
+      const firstUnrevealed = Array.from({ length: totalClozes }).findIndex((_, i) => !revealedClozes.has(i));
+      
+      if (firstUnrevealed !== -1) {
+        handleRevealCloze(firstUnrevealed);
+      } else {
+        setIsFlipped(true);
+      }
+    }
   };
 
-  const handleMark = (status: 'good' | 'review') => {
-    setResults(prev => ({
-      ...prev,
-      [currentCard.id]: status
-    }));
-    toast.success(status === 'good' ? 'Marked as remembered!' : 'Marked for review');
-    handleNext();
-  };
-
-  // Parses cloze deletions: show front with clozes obscured with bracketed hint or dots
+  // Parses cloze deletions: show front with clozes obscured or individually revealed
   const renderFront = (text: string) => {
     const regex = /\{\{c\d+::([^:}]+)(?:::([^}]+))?\}\}/g;
     const parts = [];
     let lastIndex = 0;
     let match;
+    let clozeIdx = 0;
 
     while ((match = regex.exec(text)) !== null) {
       if (match.index > lastIndex) {
         parts.push(<span key={lastIndex}>{text.substring(lastIndex, match.index)}</span>);
       }
+      const currentClozeIdx = clozeIdx;
+      const answer = match[1];
       const hint = match[2];
+      const isRevealed = revealedClozes.has(currentClozeIdx);
+
       parts.push(
         <span 
           key={match.index} 
-          className="bg-blue-100/50 text-blue-700 px-2 py-0.5 rounded font-bold border border-dashed border-blue-300"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent flipping the entire card when clicking a single cloze box
+            handleRevealCloze(currentClozeIdx);
+          }}
+          className={`px-2 py-0.5 mx-1 rounded font-bold cursor-pointer transition-all duration-150 inline-block border ${
+            isRevealed 
+              ? "bg-green-950/60 text-green-300 border-green-700/60 shadow-sm shadow-green-900/10"
+              : "bg-blue-900/40 text-blue-200 border-dashed border-blue-500/50 hover:bg-blue-800/60"
+          }`}
+          title={isRevealed ? "Answer revealed" : (hint ? `Hint: ${hint} - Click to reveal` : "Click to reveal")}
         >
-          {hint ? `[${hint}]` : '[...]'}
+          {isRevealed ? answer : (hint ? `[${hint}]` : '[...]')}
         </span>
       );
+      clozeIdx++;
       lastIndex = regex.lastIndex;
     }
 
@@ -94,7 +131,7 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
       parts.push(
         <span 
           key={match.index} 
-          className="bg-green-100 text-green-800 px-2 py-0.5 rounded font-extrabold border border-green-300 shadow-sm"
+          className="bg-green-950/80 text-green-300 px-2 py-0.5 rounded font-extrabold border border-green-800/80 shadow-sm"
         >
           {answer}
         </span>
@@ -109,8 +146,6 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
     return parts.length > 0 ? parts : text;
   };
 
-  const goodCount = Object.values(results).filter(v => v === 'good').length;
-  const reviewCount = Object.values(results).filter(v => v === 'review').length;
   const progressPercent = ((currentIndex) / cards.length) * 100;
 
   if (cards.length === 0) {
@@ -175,7 +210,16 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
                   </div>
                   <div className="text-center text-xs text-slate-500 flex items-center justify-center gap-1.5 pt-4">
                     <RotateCw size={12} />
-                    <span>Click card to reveal answer</span>
+                    <span>
+                      {(() => {
+                        const total = getClozeCount(currentCard.front);
+                        const left = total - revealedClozes.size;
+                        if (total > 0 && left > 0) {
+                          return `Click cloze boxes or card to reveal (${left} left)`;
+                        }
+                        return "Click card to reveal answer";
+                      })()}
+                    </span>
                   </div>
                 </div>
 
@@ -205,26 +249,25 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
               {/* Study Control Actions */}
               <div className="w-full flex justify-center gap-4">
                 {isFlipped ? (
-                  <div className="w-full grid grid-cols-2 gap-3 max-w-sm">
-                    <Button
-                      onClick={() => handleMark('review')}
-                      className="bg-red-900/40 border border-red-800 text-red-200 hover:bg-red-800/60 h-11"
-                    >
-                      Needs Review
-                    </Button>
-                    <Button
-                      onClick={() => handleMark('good')}
-                      className="bg-green-950/60 border border-green-800 text-green-200 hover:bg-green-800/80 h-11"
-                    >
-                      Got It!
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={handleNext}
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 h-11 font-medium w-full max-w-xs shadow-md shadow-green-900/20"
+                  >
+                    {currentIndex < cards.length - 1 ? 'Next Card' : 'Finish Session'}
+                  </Button>
                 ) : (
                   <Button 
                     onClick={handleFlip}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 h-11 font-medium w-full max-w-xs shadow-md shadow-blue-900/20"
                   >
-                    Reveal Answer
+                    {(() => {
+                      const total = getClozeCount(currentCard.front);
+                      const left = total - revealedClozes.size;
+                      if (total > 0 && left > 0) {
+                        return `Reveal Next Cloze (${left} left)`;
+                      }
+                      return "Reveal Answer";
+                    })()}
                   </Button>
                 )}
               </div>
@@ -240,19 +283,8 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
                 <Check size={28} />
               </div>
               <div>
-                <h3 className="text-2xl font-bold tracking-tight text-slate-100">Deck Complete!</h3>
+                <h3 className="text-2xl font-bold tracking-tight text-slate-100">Recall Session Complete!</h3>
                 <p className="text-sm text-slate-400 mt-1">Excellent job finishing your recall study session.</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <div>
-                  <div className="text-2xl font-black text-green-400">{goodCount}</div>
-                  <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Remembered</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-black text-red-400">{reviewCount}</div>
-                  <div className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Need Review</div>
-                </div>
               </div>
 
               <div className="flex flex-col gap-2 pt-2">
@@ -261,7 +293,6 @@ export function FlashcardViewer({ cards, onClose }: FlashcardViewerProps) {
                     setCurrentIndex(0);
                     setIsFlipped(false);
                     setShowResults(false);
-                    setResults({});
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
                 >
