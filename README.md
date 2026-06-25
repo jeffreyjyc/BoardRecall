@@ -1,11 +1,11 @@
 > [!TIP]
 > The Main Branch on Github is most likely unstable! Check releases on the github page for the latest stable version. Check to see the latest branch labelled **current** for the "stable" version. Download the code and extract. 
 
-# BoardRecall - Smart Medical Exam Companion (v0.7.0)
+# BoardRecall - Smart Medical Exam Companion (v0.7.1)
 
 BoardRecall is a powerful tool designed for medical students to convert clinical vignettes and explanations from platforms like UWorld and TrueLearn into high-yield Anki-style flashcards and board-style practice questions.
 
-### 🌟 What's New in Version 0.7.0
+### 🌟 What's New in Version 0.7.1
 - **📋 Clipboard Image Pasting**: In addition to text, you can now paste screenshots or images directly (Ctrl+V / Cmd+V) to automatically include medical charts, diagrams, or questions in your flashcard generation.
 - **⚡ Smart High-Demand Fallback**: Automatically bypasses server-side 503 high-demand/unavailable errors of premium Gemini models (like Gemini Pro) by instantly falling back to Gemini 3.1 Flash Lite to keep your studying uninterrupted.
 - **🧠 Study All Cards**: A new button in the History tab allows you to study all saved flashcards from all past sessions at once.

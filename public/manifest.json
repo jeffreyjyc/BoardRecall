@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BoardRecall",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Generate flashcards and board questions from UWorld and TrueLearn.",
   "permissions": ["activeTab", "scripting", "storage", "sidePanel", "clipboardRead", "tabs"],
   "browser_specific_settings": {
